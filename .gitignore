@@ -1,0 +1,22 @@
+# Virtual environment
+venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs / generated files
+*.log
+detection_log.csv
+
+# Model weights (large files)
+*.pt
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / editor settings
+.vscode/
+.idea/
