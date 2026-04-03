@@ -1,0 +1,13 @@
+names:
+- Moderate
+- Severe
+nc: 2
+roboflow:
+  license: CC BY 4.0
+  project: car-accident-eer2l
+  url: https://universe.roboflow.com/dataset-tfm18/car-accident-eer2l/dataset/4
+  version: 4
+  workspace: dataset-tfm18
+test: ../test/images
+train: C:\Users\user\Music\smart-traffic\car_accident_dataset\train\images
+val: C:\Users\user\Music\smart-traffic\car_accident_dataset\valid\images
