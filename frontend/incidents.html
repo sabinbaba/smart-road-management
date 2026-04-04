@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart Traffic — Incidents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 14px 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+
+  .filter-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .filter-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+    margin: 0 4px;
+  }
+
+  .filter-chip {
+    padding: 5px 14px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .filter-chip:hover {
+    border-color: var(--border-bright);
+    color: var(--text-primary);
+  }
+
+  .filter-chip.active {
+    background: rgba(0,200,255,0.1);
+    border-color: rgba(0,200,255,0.35);
+    color: var(--blue-bright);
+  }
+
+  .filter-chip.active-accident {
+    background: rgba(255,51,85,0.1);
+    border-color: rgba(255,51,85,0.35);
+    color: var(--accent-red);
+  }
+
+  .filter-chip.active-congestion {
+    background: rgba(255,170,0,0.1);
+    border-color: rgba(255,170,0,0.35);
+    color: var(--accent-orange);
+  }
+
+  .filter-chip.active-normal {
+    background: rgba(0,255,136,0.08);
+    border-color: rgba(0,255,136,0.25);
+    color: var(--accent-green);
+  }
+
+  .filter-spacer { flex: 1; }
+
+  /* Date input styling */
+  input[type="date"].input {
+    color-scheme: dark;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  /* ── SUMMARY STRIP ── */
+  .summary-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .strip-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: border-color 0.2s;
+  }
+
+  .strip-card:hover { border-color: var(--border-bright); }
+
+  .strip-icon { font-size: 22px; opacity: 0.8; }
+
+  .strip-info {}
+  .strip-val {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .strip-lbl {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+
+  .strip-card.blue   .strip-val { color: var(--blue-bright); }
+  .strip-card.red    .strip-val { color: var(--accent-red); }
+  .strip-card.orange .strip-val { color: var(--accent-orange); }
+  .strip-card.green  .strip-val { color: var(--accent-green); }
+
+  /* ── TABLE CARD ── */
+  .table-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .table-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px; height: 13px;
+    background: var(--blue-bright);
+    border-radius: 2px;
+  }
+
+  .table-count {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* Table overrides */
+  .data-table thead { position: sticky; top: 0; z-index: 2; }
+  .data-table thead tr { background: rgba(4,16,32,0.98); }
+
+  .data-table th:first-child,
+  .data-table td:first-child { padding-left: 20px; }
+
+  .data-table th:last-child,
+  .data-table td:last-child  { padding-right: 20px; }
+
+  /* Confidence bar inline */
+  .conf-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .conf-mini-bar {
+    width: 60px;
+    height: 3px;
+    background: var(--bg-deep);
+    border-radius: 2px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .conf-mini-fill {
+    height: 100%;
+    border-radius: 2px;
+  }
+
+  /* Row severity indicator */
+  .row-indicator {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+
+  /* ── PAGINATION ── */
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .page-info {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  .page-btns {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .page-btn {
+    width: 32px; height: 32px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .page-btn:hover {
+    border-color: var(--border-bright);
+    color: var(--text-primary);
+  }
+
+  .page-btn.active {
+    background: rgba(0,200,255,0.1);
+    border-color: rgba(0,200,255,0.35);
+    color: var(--blue-bright);
+  }
+
+  .page-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  /* ── EMPTY / LOADING STATES ── */
+  .table-empty {
+    text-align: center;
+    padding: 48px;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+
+  .table-empty-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+    opacity: 0.3;
+  }
+
+  /* Loading row */
+  .loading-row td {
+    padding: 10px 14px !important;
+  }
+
+  /* Row hover detail expand */
+  .detail-expand {
+    display: none;
+    background: rgba(0,200,255,0.03);
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-expand.open { display: table-row; }
+
+  .detail-expand-inner {
+    display: flex;
+    gap: 24px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .detail-expand-inner span { color: var(--text-dim); }
+
+  /* Export button */
+  .export-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border-bright);
+    background: transparent;
+    color: var(--blue-bright);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+
+  .export-btn:hover {
+    background: rgba(0,200,255,0.08);
+  }
+
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="header" id="header"></header>
+
+  <main class="main-content fade-in">
+
+    <!-- ── PAGE HEADER ── -->
+    <div class="flex-between mb-16">
+      <div>
+        <div class="page-title">Incident Log</div>
+        <div class="page-sub">All detections stored in SQLite — filter, search and export</div>
+      </div>
+      <a class="export-btn" id="exportBtn" href="#" onclick="exportCSV()">
+        ⬇ Export CSV
+      </a>
+    </div>
+
+    <!-- ── SUMMARY STRIP ── -->
+    <div class="summary-strip">
+      <div class="strip-card blue">
+        <div class="strip-icon">📡</div>
+        <div class="strip-info">
+          <div class="strip-val" id="stripTotal">—</div>
+          <div class="strip-lbl">TOTAL</div>
+        </div>
+      </div>
+      <div class="strip-card red">
+        <div class="strip-icon">🚨</div>
+        <div class="strip-info">
+          <div class="strip-val" id="stripAccident">—</div>
+          <div class="strip-lbl">ACCIDENTS</div>
+        </div>
+      </div>
+      <div class="strip-card orange">
+        <div class="strip-icon">🚦</div>
+        <div class="strip-info">
+          <div class="strip-val" id="stripCongestion">—</div>
+          <div class="strip-lbl">CONGESTION</div>
+        </div>
+      </div>
+      <div class="strip-card green">
+        <div class="strip-icon">✅</div>
+        <div class="strip-info">
+          <div class="strip-val" id="stripNormal">—</div>
+          <div class="strip-lbl">NORMAL</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FILTER BAR ── -->
+    <div class="filter-bar">
+      <span class="filter-label">Filter:</span>
+
+      <button class="filter-chip active" id="chip-ALL"
+        onclick="setFilter('ALL')">All</button>
+      <button class="filter-chip" id="chip-ACCIDENT"
+        onclick="setFilter('ACCIDENT')">🚨 Accident</button>
+      <button class="filter-chip" id="chip-CONGESTION"
+        onclick="setFilter('CONGESTION')">🚦 Congestion</button>
+      <button class="filter-chip" id="chip-NORMAL"
+        onclick="setFilter('NORMAL')">✅ Normal</button>
+
+      <div class="filter-divider"></div>
+
+      <span class="filter-label">Date:</span>
+      <input type="date" class="input" id="dateFilter"
+        onchange="applyDateFilter(this.value)"/>
+
+      <button class="filter-chip" onclick="clearFilters()">✕ Clear</button>
+
+      <div class="filter-spacer"></div>
+
+      <span class="filter-label" id="filterResultCount">— records</span>
+    </div>
+
+    <!-- ── TABLE ── -->
+    <div class="table-card">
+      <div class="table-header">
+        <div class="table-title">Detection Records</div>
+        <div class="table-count" id="tableCount">Loading...</div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Timestamp</th>
+              <th>Status</th>
+              <th>Vehicles</th>
+              <th>Class</th>
+              <th>Confidence</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr class="loading-row">
+              <td colspan="7">
+                <div class="table-empty">
+                  <div class="skeleton" style="width:200px;height:12px;margin:0 auto;"></div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <div class="page-info" id="pageInfo">Page 1 of 1</div>
+        <div class="page-btns" id="pageBtns"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="footer" id="footer"></footer>
+</div>
+
+<script src="js/shared.js"></script>
+<script>
+  initPage("incidents", "Incidents", "// INCIDENTS / LOG");
+
+  // ── STATE ────────────────────────────────
+  let currentPage   = 1;
+  let totalPages    = 1;
+  let totalRecords  = 0;
+  let statusFilter  = "ALL";
+  let dateFilter    = "";
+  const perPage     = 20;
+
+  // ── LOAD SUMMARY ─────────────────────────
+  async function loadSummary() {
+    const data = await apiFetch("/api/stats/summary");
+    if (!data) return;
+    document.getElementById("stripTotal").textContent      = data.total_detections  ?? 0;
+    document.getElementById("stripAccident").textContent   = data.total_accidents   ?? 0;
+    document.getElementById("stripCongestion").textContent = data.total_congestion  ?? 0;
+    document.getElementById("stripNormal").textContent     = data.total_normal      ?? 0;
+
+    const ft = document.getElementById("footerDetections");
+    if (ft) ft.textContent = `DETECTIONS: ${data.total_detections ?? 0}`;
+  }
+
+  // ── LOAD TABLE ───────────────────────────
+  async function loadTable(page = 1) {
+    currentPage = page;
+
+    let url = `/api/detections?page=${page}&per_page=${perPage}`;
+    if (statusFilter && statusFilter !== "ALL") url += `&status_filter=${statusFilter}`;
+    if (dateFilter) url += `&date_filter=${dateFilter}`;
+
+    const res = await apiFetch(url);
+    if (!res) return;
+
+    totalPages   = res.total_pages || 1;
+    totalRecords = res.total || 0;
+
+    document.getElementById("tableCount").textContent =
+      `${totalRecords.toLocaleString()} records`;
+    document.getElementById("filterResultCount").textContent =
+      `${totalRecords.toLocaleString()} records`;
+    document.getElementById("pageInfo").textContent =
+      `Page ${currentPage} of ${totalPages}`;
+
+    renderTable(res.data || []);
+    renderPagination();
+  }
+
+  // ── RENDER TABLE ─────────────────────────
+  function renderTable(rows) {
+    const tbody = document.getElementById("tableBody");
+
+    if (rows.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7">
+            <div class="table-empty">
+              <div class="table-empty-icon">📋</div>
+              <div>NO RECORDS FOUND</div>
+              <div style="font-size:10px;margin-top:6px;color:var(--text-dim);">
+                Try changing your filters
+              </div>
+            </div>
+          </td>
+        </tr>`;
+      return;
+    }
+
+    tbody.innerHTML = rows.map((r, i) => {
+      const isAccident   = r.status.includes("ACCIDENT");
+      const isCongestion = r.status.includes("CONGESTION");
+      const statusCls    = getStatusClass(r.status);
+      const color        = getStatusColor(r.status);
+      const icon         = isAccident ? "🚨" : isCongestion ? "🚦" : "✅";
+      const confPct      = Math.round((r.confidence || 0) * 100);
+      const rowNum       = (currentPage - 1) * perPage + i + 1;
+
+      return `
+        <tr onclick="toggleDetail(${r.id})" style="cursor:pointer;">
+          <td style="color:var(--text-dim); font-family:'Share Tech Mono',monospace; font-size:11px;">
+            ${rowNum}
+          </td>
+          <td style="font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text-muted);">
+            ${formatDateTime(r.timestamp)}
+          </td>
+          <td>
+            <span class="status-badge ${statusCls}">
+              ${icon} ${r.status}
+            </span>
+          </td>
+          <td style="font-family:'Rajdhani',sans-serif; font-size:16px; font-weight:600; color:var(--text-primary);">
+            ${r.vehicle_count}
+          </td>
+          <td style="font-family:'Share Tech Mono',monospace; font-size:11px; color:${
+            r.accident_class === 'none' ? 'var(--text-dim)' : color
+          };">
+            ${r.accident_class?.toUpperCase() || 'NONE'}
+          </td>
+          <td>
+            <div class="conf-cell">
+              <span style="font-family:'Share Tech Mono',monospace; font-size:11px;
+                           color:${color}; min-width:36px;">
+                ${confPct}%
+              </span>
+              <div class="conf-mini-bar">
+                <div class="conf-mini-fill"
+                     style="width:${confPct}%; background:${color};"></div>
+              </div>
+            </div>
+          </td>
+          <td style="color:var(--text-dim); font-size:12px;">
+            ${timeAgo(r.timestamp)}
+          </td>
+        </tr>
+        <tr class="detail-expand" id="detail-${r.id}">
+          <td colspan="7">
+            <div class="detail-expand-inner">
+              <div><span>ID: </span>${r.id}</div>
+              <div><span>Full Timestamp: </span>${r.timestamp || '—'}</div>
+              <div><span>Accident Class: </span>${r.accident_class || 'none'}</div>
+              <div><span>Confidence: </span>${confPct}%</div>
+              <div><span>Vehicles: </span>${r.vehicle_count}</div>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  // ── TOGGLE ROW DETAIL ────────────────────
+  function toggleDetail(id) {
+    const row = document.getElementById(`detail-${id}`);
+    if (!row) return;
+    row.classList.toggle("open");
+  }
+
+  // ── PAGINATION ───────────────────────────
+  function renderPagination() {
+    const wrap = document.getElementById("pageBtns");
+    const pages = [];
+
+    // Prev
+    pages.push(`
+      <button class="page-btn" onclick="loadTable(${currentPage - 1})"
+        ${currentPage <= 1 ? "disabled" : ""}>‹</button>
+    `);
+
+    // Page numbers (show max 5)
+    let start = Math.max(1, currentPage - 2);
+    let end   = Math.min(totalPages, start + 4);
+    start = Math.max(1, end - 4);
+
+    for (let p = start; p <= end; p++) {
+      pages.push(`
+        <button class="page-btn ${p === currentPage ? "active" : ""}"
+          onclick="loadTable(${p})">${p}</button>
+      `);
+    }
+
+    // Next
+    pages.push(`
+      <button class="page-btn" onclick="loadTable(${currentPage + 1})"
+        ${currentPage >= totalPages ? "disabled" : ""}>›</button>
+    `);
+
+    wrap.innerHTML = pages.join("");
+  }
+
+  // ── FILTERS ──────────────────────────────
+  function setFilter(status) {
+    statusFilter = status;
+    currentPage  = 1;
+
+    // Update chip styles
+    ["ALL","ACCIDENT","CONGESTION","NORMAL"].forEach(s => {
+      const chip = document.getElementById(`chip-${s}`);
+      if (!chip) return;
+      chip.className = "filter-chip";
+      if (s === status) {
+        if (s === "ALL")        chip.classList.add("active");
+        if (s === "ACCIDENT")   chip.classList.add("active-accident");
+        if (s === "CONGESTION") chip.classList.add("active-congestion");
+        if (s === "NORMAL")     chip.classList.add("active-normal");
+      }
+    });
+
+    loadTable(1);
+  }
+
+  function applyDateFilter(val) {
+    dateFilter  = val;
+    currentPage = 1;
+    loadTable(1);
+  }
+
+  function clearFilters() {
+    statusFilter = "ALL";
+    dateFilter   = "";
+    currentPage  = 1;
+    document.getElementById("dateFilter").value = "";
+    setFilter("ALL");
+  }
+
+  // ── EXPORT CSV ───────────────────────────
+  async function exportCSV() {
+    let url = `${API_BASE}/api/report/csv?`;
+    if (statusFilter !== "ALL") url += `status_filter=${statusFilter}&`;
+    if (dateFilter)             url += `date_filter=${dateFilter}`;
+
+    showToast("⬇ Preparing CSV export...", "info");
+
+    try {
+      const res = await fetch(url, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Export failed");
+
+      const blob     = await res.blob();
+      const link     = document.createElement("a");
+      link.href      = URL.createObjectURL(blob);
+      link.download  = `traffic_incidents_${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+      showToast("✓ CSV exported successfully!", "success");
+    } catch (err) {
+      showToast("✖ Export failed. Try again.", "error");
+    }
+  }
+
+  // ── BOOT ─────────────────────────────────
+  const API_BASE = "http://localhost:8000";
+
+  // Set today's date as default
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById("dateFilter").value = today;
+  dateFilter = today;
+
+  loadSummary();
+  loadTable(1);
+
+  // Auto refresh every 30s
+  setInterval(() => {
+    loadSummary();
+    loadTable(currentPage);
+  }, 30000);
+
+  // Live status poll
+  startStatusPoll(null);
+</script>
+</body>
+</html>

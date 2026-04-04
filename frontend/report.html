@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart Traffic — Reports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  .report-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .report-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .report-card:hover {
+    border-color: var(--border-bright);
+    transform: translateY(-2px);
+  }
+
+  .report-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .report-card.blue::after   { background: var(--blue-bright); }
+  .report-card.green::after  { background: var(--accent-green); }
+  .report-card.orange::after { background: var(--accent-orange); }
+  .report-card.red::after    { background: var(--accent-red); }
+
+  .report-card-icon {
+    font-size: 32px;
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  .report-card-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+
+  .report-card-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  .report-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .report-option-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .option-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    white-space: nowrap;
+  }
+
+  .report-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Summary report card */
+  .summary-report {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .summary-report-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .report-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .report-stat {
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+
+  .report-stat-val {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--blue-bright);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .report-stat-lbl {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  .chart-wrap-report {
+    height: 180px;
+    position: relative;
+  }
+
+  /* Daily table in report */
+  .daily-report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+  }
+
+  .daily-report-table th {
+    padding: 8px 12px;
+    text-align: left;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .daily-report-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(0,200,255,0.04);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .daily-report-table tr:hover td {
+    background: rgba(0,200,255,0.03);
+    color: var(--text-primary);
+  }
+
+  .generated-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: rgba(0,255,136,0.08);
+    border: 1px solid rgba(0,255,136,0.2);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--accent-green);
+    letter-spacing: 1px;
+  }
+
+  input[type="date"].input { color-scheme: dark; }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="header" id="header"></header>
+
+  <main class="main-content fade-in">
+
+    <div class="flex-between mb-16">
+      <div>
+        <div class="page-title">Reports</div>
+        <div class="page-sub">Generate and download traffic detection reports</div>
+      </div>
+      <div class="generated-badge">
+        <div class="live-dot" style="width:5px;height:5px;"></div>
+        AUTO-GENERATED
+      </div>
+    </div>
+
+    <!-- ── LIVE SUMMARY REPORT ── -->
+    <div class="summary-report">
+      <div class="summary-report-header">
+        <div>
+          <div class="card-title" style="margin-bottom:4px;">System Summary Report</div>
+          <div style="font-family:'Share Tech Mono',monospace; font-size:10px;
+                      color:var(--text-dim);" id="reportGenTime">
+            Generated: —
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <select class="input" id="reportDays" onchange="loadSummaryReport(this.value)"
+            style="font-size:12px; padding:7px 28px 7px 10px;">
+            <option value="7">Last 7 Days</option>
+            <option value="14">Last 14 Days</option>
+            <option value="30">Last 30 Days</option>
+          </select>
+          <button class="btn btn-primary" onclick="exportSummaryCSV()">⬇ Export CSV</button>
+          <button class="btn btn-outline" onclick="printReport()">🖨 Print</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="report-stat-grid">
+        <div class="report-stat">
+          <div class="report-stat-val" id="rTotal">—</div>
+          <div class="report-stat-lbl">TOTAL</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-val" id="rAccidents" style="color:var(--accent-red);">—</div>
+          <div class="report-stat-lbl">ACCIDENTS</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-val" id="rSevere" style="color:var(--accent-red);">—</div>
+          <div class="report-stat-lbl">SEVERE</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-val" id="rModerate" style="color:var(--accent-orange);">—</div>
+          <div class="report-stat-lbl">MODERATE</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-val" id="rCongestion" style="color:var(--accent-orange);">—</div>
+          <div class="report-stat-lbl">CONGESTION</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-val" id="rAvgVehicles" style="color:var(--accent-green);">—</div>
+          <div class="report-stat-lbl">AVG VEHICLES</div>
+        </div>
+      </div>
+
+      <!-- Mini trend chart -->
+      <div class="chart-wrap-report">
+        <canvas id="reportTrendChart"></canvas>
+      </div>
+
+      <!-- Daily breakdown table -->
+      <table class="daily-report-table" id="dailyTable">
+        <thead>
+          <tr>
+            <th>DATE</th>
+            <th>TOTAL</th>
+            <th>ACCIDENTS</th>
+            <th>SEVERE</th>
+            <th>MODERATE</th>
+            <th>CONGESTION</th>
+            <th>AVG VEHICLES</th>
+          </tr>
+        </thead>
+        <tbody id="dailyTableBody">
+          <tr><td colspan="7" style="text-align:center; color:var(--text-dim);
+            font-family:'Share Tech Mono',monospace; padding:20px;">
+            LOADING...
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── EXPORT CARDS ── -->
+    <div class="report-grid">
+
+      <!-- Custom Date Range CSV -->
+      <div class="report-card blue">
+        <span class="report-card-icon">📄</span>
+        <div class="report-card-title">Custom CSV Export</div>
+        <div class="report-card-desc">
+          Export detection records for a specific date range and status filter as a CSV file.
+        </div>
+        <div class="report-options">
+          <div class="report-option-row">
+            <span class="option-label">FROM DATE</span>
+            <input type="date" class="input" id="csvFrom"
+              style="font-size:12px; padding:6px 10px;" />
+          </div>
+          <div class="report-option-row">
+            <span class="option-label">TO DATE</span>
+            <input type="date" class="input" id="csvTo"
+              style="font-size:12px; padding:6px 10px;" />
+          </div>
+          <div class="report-option-row">
+            <span class="option-label">STATUS</span>
+            <select class="input" id="csvStatus"
+              style="font-size:12px; padding:6px 28px 6px 10px;">
+              <option value="">All Statuses</option>
+              <option value="ACCIDENT">Accident Only</option>
+              <option value="CONGESTION">Congestion Only</option>
+              <option value="NORMAL">Normal Only</option>
+            </select>
+          </div>
+        </div>
+        <div class="report-actions">
+          <button class="btn btn-primary" onclick="exportCustomCSV()">⬇ Download CSV</button>
+        </div>
+      </div>
+
+      <!-- Today's report -->
+      <div class="report-card green">
+        <span class="report-card-icon">📅</span>
+        <div class="report-card-title">Today's Report</div>
+        <div class="report-card-desc">
+          Download a complete CSV of all detections recorded today including all status types.
+        </div>
+        <div class="report-options">
+          <div class="report-option-row">
+            <span class="option-label">DATE</span>
+            <span style="font-family:'Share Tech Mono',monospace; font-size:12px;
+                         color:var(--accent-green);" id="todayDate">—</span>
+          </div>
+          <div class="report-option-row">
+            <span class="option-label">RECORDS</span>
+            <span style="font-family:'Share Tech Mono',monospace; font-size:12px;
+                         color:var(--text-primary);" id="todayCount">—</span>
+          </div>
+        </div>
+        <div class="report-actions">
+          <button class="btn btn-primary" onclick="exportTodayCSV()">⬇ Today's CSV</button>
+        </div>
+      </div>
+
+      <!-- Accidents only -->
+      <div class="report-card red">
+        <span class="report-card-icon">🚨</span>
+        <div class="report-card-title">Accidents Report</div>
+        <div class="report-card-desc">
+          Export only accident detections (Moderate and Severe) for incident review and analysis.
+        </div>
+        <div class="report-options">
+          <div class="report-option-row">
+            <span class="option-label">TOTAL ACCIDENTS</span>
+            <span style="font-family:'Share Tech Mono',monospace; font-size:12px;
+                         color:var(--accent-red);" id="accCount">—</span>
+          </div>
+          <div class="report-option-row">
+            <span class="option-label">SEVERE</span>
+            <span style="font-family:'Share Tech Mono',monospace; font-size:12px;
+                         color:var(--accent-red);" id="sevCount">—</span>
+          </div>
+        </div>
+        <div class="report-actions">
+          <button class="btn btn-danger" onclick="exportAccidentsCSV()">⬇ Accidents CSV</button>
+        </div>
+      </div>
+
+      <!-- Congestion report -->
+      <div class="report-card orange">
+        <span class="report-card-icon">🚦</span>
+        <div class="report-card-title">Congestion Report</div>
+        <div class="report-card-desc">
+          Export all congestion events to analyze traffic jam patterns and peak hours.
+        </div>
+        <div class="report-options">
+          <div class="report-option-row">
+            <span class="option-label">TOTAL CONGESTION</span>
+            <span style="font-family:'Share Tech Mono',monospace; font-size:12px;
+                         color:var(--accent-orange);" id="congCount">—</span>
+          </div>
+          <div class="report-option-row">
+            <span class="option-label">TODAY</span>
+            <span style="font-family:'Share Tech Mono',monospace; font-size:12px;
+                         color:var(--text-primary);" id="congToday">—</span>
+          </div>
+        </div>
+        <div class="report-actions">
+          <button class="btn btn-outline" style="border-color:rgba(255,170,0,0.4);
+            color:var(--accent-orange);" onclick="exportCongestionCSV()">
+            ⬇ Congestion CSV
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="footer" id="footer"></footer>
+</div>
+
+<script src="js/shared.js"></script>
+<script>
+  initPage("report", "Reports", "// REPORTS / EXPORT");
+
+  const API_BASE = "http://localhost:8000";
+  let reportTrendChart;
+
+  // ── SET DEFAULTS ──────────────────────────
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById("csvTo").value   = today;
+  document.getElementById("csvFrom").value = new Date(Date.now() - 7*86400000)
+    .toISOString().slice(0,10);
+  document.getElementById("todayDate").textContent = today;
+  document.getElementById("reportGenTime").textContent =
+    `Generated: ${new Date().toLocaleString()}`;
+
+  // ── LOAD SUMMARY REPORT ───────────────────
+  async function loadSummaryReport(days = 7) {
+    const [summaryRes, dailyRes] = await Promise.all([
+      apiFetch("/api/stats/summary"),
+      apiFetch(`/api/stats/daily?days=${days}`),
+    ]);
+
+    if (summaryRes) {
+      document.getElementById("rTotal").textContent      = summaryRes.total_detections  ?? 0;
+      document.getElementById("rAccidents").textContent  = summaryRes.total_accidents   ?? 0;
+      document.getElementById("rSevere").textContent     = summaryRes.total_severe      ?? 0;
+      document.getElementById("rModerate").textContent   = summaryRes.total_moderate    ?? 0;
+      document.getElementById("rCongestion").textContent = summaryRes.total_congestion  ?? 0;
+      document.getElementById("rAvgVehicles").textContent =
+        summaryRes.avg_vehicle_count ? summaryRes.avg_vehicle_count.toFixed(1) : "0";
+
+      document.getElementById("accCount").textContent  = summaryRes.total_accidents  ?? 0;
+      document.getElementById("sevCount").textContent  = summaryRes.total_severe     ?? 0;
+      document.getElementById("congCount").textContent = summaryRes.total_congestion ?? 0;
+      document.getElementById("todayCount").textContent =
+        `${summaryRes.today_total ?? 0} records`;
+
+      const ft = document.getElementById("footerDetections");
+      if (ft) ft.textContent = `DETECTIONS: ${summaryRes.total_detections ?? 0}`;
+    }
+
+    if (dailyRes) {
+      const rows = dailyRes.data || [];
+      renderDailyTable(rows);
+      renderTrendChart(rows);
+    }
+  }
+
+  // ── DAILY TABLE ───────────────────────────
+  function renderDailyTable(rows) {
+    const tbody = document.getElementById("dailyTableBody");
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;
+        color:var(--text-dim); font-family:'Share Tech Mono',monospace; padding:20px;">
+        NO DATA AVAILABLE</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = [...rows].reverse().map(r => `
+      <tr>
+        <td style="font-family:'Share Tech Mono',monospace; color:var(--blue-bright);">
+          ${r.date || "—"}
+        </td>
+        <td>${r.total_detections  || 0}</td>
+        <td style="color:var(--accent-red);">${r.total_accidents  || 0}</td>
+        <td style="color:var(--accent-red);">${r.total_severe    || 0}</td>
+        <td style="color:var(--accent-orange);">${r.total_moderate || 0}</td>
+        <td style="color:var(--accent-orange);">${r.total_congestion || 0}</td>
+        <td style="color:var(--accent-green);">
+          ${r.avg_vehicle_count ? r.avg_vehicle_count.toFixed(1) : "0"}
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  // ── TREND CHART ───────────────────────────
+  function renderTrendChart(rows) {
+    const labels    = rows.map(r => r.date?.slice(5) || "");
+    const total     = rows.map(r => r.total_detections || 0);
+    const accidents = rows.map(r => r.total_accidents  || 0);
+
+    const ctx = document.getElementById("reportTrendChart").getContext("2d");
+    if (reportTrendChart) reportTrendChart.destroy();
+
+    reportTrendChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Total",
+            data: total,
+            backgroundColor: "rgba(0,200,255,0.2)",
+            borderColor: "rgba(0,200,255,0.5)",
+            borderWidth: 1,
+            borderRadius: 3,
+            type: "bar",
+          },
+          {
+            label: "Accidents",
+            data: accidents,
+            borderColor: "rgba(255,51,85,0.8)",
+            borderWidth: 2,
+            tension: 0.4,
+            type: "line",
+            pointBackgroundColor: "rgba(255,51,85,0.8)",
+            pointRadius: 3,
+            fill: false,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: { color: "#5a8aaa", font: { size: 11 }, boxWidth: 10 }
+          },
+          tooltip: {
+            backgroundColor: "rgba(4,16,32,0.95)",
+            borderColor: "rgba(0,200,255,0.2)",
+            borderWidth: 1,
+            titleColor: "#00c8ff",
+            bodyColor: "#5a8aaa",
+          }
+        },
+        scales: {
+          x: { grid: { color: "rgba(0,200,255,0.04)" }, ticks: { color: "#2a4a60", font: { size: 10 } } },
+          y: { grid: { color: "rgba(0,200,255,0.04)" }, ticks: { color: "#2a4a60", font: { size: 10 } } }
+        }
+      }
+    });
+  }
+
+  // ── TODAY CONGESTION COUNT ────────────────
+  async function loadTodayCongestion() {
+    const res = await apiFetch("/api/detections/today");
+    if (!res) return;
+    const rows = res.data || [];
+    const congToday = rows.filter(r => r.status === "CONGESTION").length;
+    document.getElementById("congToday").textContent = `${congToday} today`;
+  }
+
+  // ── EXPORTS ──────────────────────────────
+  async function doExport(params, filename) {
+    showToast("⬇ Preparing export...", "info");
+    try {
+      const query = new URLSearchParams(params).toString();
+      const res = await fetch(`${API_BASE}/api/report/csv?${query}`, {
+        headers: authHeaders()
+      });
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      showToast("✓ Export ready!", "success");
+    } catch {
+      showToast("✖ Export failed.", "error");
+    }
+  }
+
+  function exportSummaryCSV() {
+    const days = document.getElementById("reportDays").value;
+    const from = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+    doExport({ date_filter: from }, `summary_report_${today}.csv`);
+  }
+
+  function exportCustomCSV() {
+    const from   = document.getElementById("csvFrom").value;
+    const to     = document.getElementById("csvTo").value;
+    const status = document.getElementById("csvStatus").value;
+    const params = {};
+    if (to)     params.date_filter   = to;
+    if (status) params.status_filter = status;
+    doExport(params, `custom_report_${from}_${to}.csv`);
+  }
+
+  function exportTodayCSV() {
+    doExport({ date_filter: today }, `today_report_${today}.csv`);
+  }
+
+  function exportAccidentsCSV() {
+    doExport({ status_filter: "ACCIDENT" }, `accidents_report_${today}.csv`);
+  }
+
+  function exportCongestionCSV() {
+    doExport({ status_filter: "CONGESTION" }, `congestion_report_${today}.csv`);
+  }
+
+  function printReport() {
+    window.print();
+  }
+
+  // ── BOOT ─────────────────────────────────
+  loadSummaryReport(7);
+  loadTodayCongestion();
+  startStatusPoll(null);
+  setInterval(() => loadSummaryReport(
+    document.getElementById("reportDays").value
+  ), 60000);
+</script>
+</body>
+</html>

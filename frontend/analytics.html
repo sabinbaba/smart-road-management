@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart Traffic — Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+
+  /* ── PERIOD SELECTOR ── */
+  .period-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .period-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-right: 4px;
+  }
+
+  .period-btn {
+    padding: 6px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .period-btn:hover {
+    border-color: var(--border-bright);
+    color: var(--text-primary);
+  }
+
+  .period-btn.active {
+    background: rgba(0,200,255,0.1);
+    border-color: rgba(0,200,255,0.35);
+    color: var(--blue-bright);
+  }
+
+  /* ── KPI ROW ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .kpi-card:hover {
+    border-color: var(--border-bright);
+    transform: translateY(-2px);
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .kpi-card.blue::before   { background: var(--blue-bright); }
+  .kpi-card.red::before    { background: var(--accent-red); }
+  .kpi-card.orange::before { background: var(--accent-orange); }
+  .kpi-card.green::before  { background: var(--accent-green); }
+  .kpi-card.purple::before { background: #a855f7; }
+
+  .kpi-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .kpi-card.blue   .kpi-value { color: var(--blue-bright); }
+  .kpi-card.red    .kpi-value { color: var(--accent-red); }
+  .kpi-card.orange .kpi-value { color: var(--accent-orange); }
+  .kpi-card.green  .kpi-value { color: var(--accent-green); }
+  .kpi-card.purple .kpi-value { color: #a855f7; }
+
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* ── CHART GRID ── */
+  .chart-grid-top {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .chart-grid-bottom {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    transition: border-color 0.2s;
+  }
+
+  .chart-card:hover { border-color: var(--border-bright); }
+
+  .chart-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .chart-card-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .chart-card-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px; height: 13px;
+    background: var(--blue-bright);
+    border-radius: 2px;
+  }
+
+  .chart-card-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  .chart-wrap { position: relative; }
+  .chart-wrap.h200 { height: 200px; }
+  .chart-wrap.h220 { height: 220px; }
+  .chart-wrap.h260 { height: 260px; }
+
+  /* ── PEAK HOURS TABLE ── */
+  .peak-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(0,200,255,0.04);
+  }
+
+  .peak-row:last-child { border-bottom: none; }
+
+  .peak-hour {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--blue-bright);
+    width: 50px;
+    flex-shrink: 0;
+  }
+
+  .peak-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: var(--bg-deep);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .peak-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--blue-dark), var(--blue-bright));
+    transition: width 0.6s ease;
+  }
+
+  .peak-count {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    width: 30px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── STAT TABLE ── */
+  .mini-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(0,200,255,0.04);
+  }
+
+  .mini-stat-row:last-child { border-bottom: none; }
+
+  .mini-stat-key {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  .mini-stat-val {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* ── NO DATA ── */
+  .no-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    gap: 8px;
+  }
+
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="header" id="header"></header>
+
+  <main class="main-content fade-in">
+
+    <!-- ── PAGE HEADER ── -->
+    <div class="flex-between mb-16">
+      <div>
+        <div class="page-title">Analytics</div>
+        <div class="page-sub">Traffic patterns, trends and performance insights</div>
+      </div>
+      <!-- Period selector -->
+      <div class="period-bar" style="margin-bottom:0;">
+        <span class="period-label">PERIOD:</span>
+        <button class="period-btn" onclick="setPeriod(1)">Today</button>
+        <button class="period-btn active" id="p7" onclick="setPeriod(7)">7 Days</button>
+        <button class="period-btn" onclick="setPeriod(14)">14 Days</button>
+        <button class="period-btn" onclick="setPeriod(30)">30 Days</button>
+      </div>
+    </div>
+
+    <!-- ── KPI ROW ── -->
+    <div class="kpi-row">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Total Detections</div>
+        <div class="kpi-value" id="kpiTotal">—</div>
+        <div class="kpi-sub">All records</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Accidents</div>
+        <div class="kpi-value" id="kpiAccidents">—</div>
+        <div class="kpi-sub">Mod + Severe</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Congestion</div>
+        <div class="kpi-value" id="kpiCongestion">—</div>
+        <div class="kpi-sub">Traffic jams</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Avg Vehicles</div>
+        <div class="kpi-value" id="kpiAvg">—</div>
+        <div class="kpi-sub">Per detection</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Severe Events</div>
+        <div class="kpi-value" id="kpiSevere">—</div>
+        <div class="kpi-sub">High priority</div>
+      </div>
+    </div>
+
+    <!-- ── TOP ROW: TREND + DONUT ── -->
+    <div class="chart-grid-top">
+
+      <!-- Daily trend line -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Daily Trend</div>
+          <div class="chart-card-sub" id="trendPeriodLabel">LAST 7 DAYS</div>
+        </div>
+        <div class="chart-wrap h260">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Status donut -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Breakdown</div>
+          <div class="chart-card-sub">BY STATUS</div>
+        </div>
+        <div class="chart-wrap h260">
+          <canvas id="donutChart"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── BOTTOM ROW: HOURLY + PEAK + STATS ── -->
+    <div class="chart-grid-bottom">
+
+      <!-- Hourly bar chart -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Hourly Activity</div>
+          <div class="chart-card-sub">TODAY</div>
+        </div>
+        <div class="chart-wrap h200">
+          <canvas id="hourlyChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Peak hours -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Peak Hours</div>
+          <div class="chart-card-sub">TODAY</div>
+        </div>
+        <div id="peakList" style="height:200px; overflow-y:auto;">
+          <div class="no-data">📊 LOADING...</div>
+        </div>
+      </div>
+
+      <!-- Quick stats -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Quick Stats</div>
+          <div class="chart-card-sub">SUMMARY</div>
+        </div>
+        <div style="height:200px; overflow-y:auto;">
+          <div class="mini-stat-row">
+            <span class="mini-stat-key">MAX VEHICLES</span>
+            <span class="mini-stat-val" id="statMaxVehicles">—</span>
+          </div>
+          <div class="mini-stat-row">
+            <span class="mini-stat-key">TODAY TOTAL</span>
+            <span class="mini-stat-val" id="statToday">—</span>
+          </div>
+          <div class="mini-stat-row">
+            <span class="mini-stat-key">SEVERE RATE</span>
+            <span class="mini-stat-val" id="statSevereRate" style="color:var(--accent-red);">—</span>
+          </div>
+          <div class="mini-stat-row">
+            <span class="mini-stat-key">MODERATE RATE</span>
+            <span class="mini-stat-val" id="statModRate" style="color:var(--accent-orange);">—</span>
+          </div>
+          <div class="mini-stat-row">
+            <span class="mini-stat-key">TOTAL MODERATE</span>
+            <span class="mini-stat-val" id="statModTotal">—</span>
+          </div>
+          <div class="mini-stat-row">
+            <span class="mini-stat-key">TOTAL SEVERE</span>
+            <span class="mini-stat-val" id="statSevTotal" style="color:var(--accent-red);">—</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="footer" id="footer"></footer>
+</div>
+
+<script src="./js/shared.js"></script>
+<script>
+  initPage("analytics", "Analytics", "// ANALYTICS / INSIGHTS");
+
+  let trendChart, donutChart, hourlyChart;
+  let activePeriod = 7;
+
+  // ── CHART DEFAULT OPTIONS ─────────────────
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: { color: "#5a8aaa", font: { size: 11 }, boxWidth: 10, padding: 12 }
+      },
+      tooltip: {
+        backgroundColor: "rgba(4,16,32,0.95)",
+        borderColor: "rgba(0,200,255,0.2)",
+        borderWidth: 1,
+        titleColor: "#00c8ff",
+        bodyColor: "#5a8aaa",
+        padding: 10,
+      }
+    },
+    scales: {
+      x: {
+        grid:  { color: "rgba(0,200,255,0.04)" },
+        ticks: { color: "#2a4a60", font: { size: 10 } }
+      },
+      y: {
+        grid:  { color: "rgba(0,200,255,0.04)" },
+        ticks: { color: "#2a4a60", font: { size: 10 } }
+      }
+    }
+  };
+
+  // ── PERIOD SELECTOR ───────────────────────
+  function setPeriod(days) {
+    activePeriod = days;
+    document.querySelectorAll(".period-btn").forEach(b => b.classList.remove("active"));
+    event.target.classList.add("active");
+    document.getElementById("trendPeriodLabel").textContent = `LAST ${days} DAY${days > 1 ? "S" : ""}`;
+    loadDailyTrend(days);
+  }
+
+  // ── LOAD KPIs ─────────────────────────────
+  async function loadKPIs() {
+    const data = await apiFetch("/api/stats/summary");
+    if (!data) return;
+
+    document.getElementById("kpiTotal").textContent      = data.total_detections  ?? 0;
+    document.getElementById("kpiAccidents").textContent  = data.total_accidents   ?? 0;
+    document.getElementById("kpiCongestion").textContent = data.total_congestion  ?? 0;
+    document.getElementById("kpiAvg").textContent        =
+      data.avg_vehicle_count ? data.avg_vehicle_count.toFixed(1) : "0";
+    document.getElementById("kpiSevere").textContent     = data.total_severe      ?? 0;
+
+    // Quick stats
+    document.getElementById("statMaxVehicles").textContent = data.max_vehicle_count ?? 0;
+    document.getElementById("statToday").textContent       = data.today_total       ?? 0;
+
+    const total = data.total_detections || 1;
+    const sevRate = ((data.total_severe    / total) * 100).toFixed(1);
+    const modRate = ((data.total_moderate  / total) * 100).toFixed(1);
+    document.getElementById("statSevereRate").textContent = `${sevRate}%`;
+    document.getElementById("statModRate").textContent    = `${modRate}%`;
+    document.getElementById("statModTotal").textContent   = data.total_moderate ?? 0;
+    document.getElementById("statSevTotal").textContent   = data.total_severe   ?? 0;
+
+    // Footer
+    const ft = document.getElementById("footerDetections");
+    if (ft) ft.textContent = `DETECTIONS: ${data.total_detections ?? 0}`;
+
+    // Update donut
+    if (donutChart) {
+      donutChart.data.datasets[0].data = [
+        data.total_normal     ?? 0,
+        data.total_congestion ?? 0,
+        data.total_moderate   ?? 0,
+        data.total_severe     ?? 0,
+      ];
+      donutChart.update("active");
+    }
+  }
+
+  // ── DAILY TREND CHART ─────────────────────
+  async function loadDailyTrend(days = 7) {
+    const res = await apiFetch(`/api/stats/daily?days=${days}`);
+    if (!res) return;
+    const rows = res.data || [];
+
+    const labels     = rows.map(r => r.date ? r.date.slice(5) : "");
+    const accidents  = rows.map(r => r.total_accidents  || 0);
+    const congestion = rows.map(r => r.total_congestion || 0);
+    const total      = rows.map(r => r.total_detections || 0);
+
+    const ctx = document.getElementById("trendChart").getContext("2d");
+    if (trendChart) trendChart.destroy();
+
+    trendChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Total",
+            data: total,
+            borderColor: "rgba(0,200,255,0.6)",
+            backgroundColor: "rgba(0,200,255,0.05)",
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true,
+            pointBackgroundColor: "rgba(0,200,255,0.8)",
+            pointRadius: 4,
+            pointHoverRadius: 6,
+          },
+          {
+            label: "Congestion",
+            data: congestion,
+            borderColor: "rgba(255,170,0,0.8)",
+            backgroundColor: "rgba(255,170,0,0.05)",
+            borderWidth: 2,
+            tension: 0.4,
+            fill: false,
+            pointBackgroundColor: "rgba(255,170,0,0.8)",
+            pointRadius: 3,
+            pointHoverRadius: 5,
+          },
+          {
+            label: "Accidents",
+            data: accidents,
+            borderColor: "rgba(255,51,85,0.8)",
+            backgroundColor: "rgba(255,51,85,0.05)",
+            borderWidth: 2,
+            tension: 0.4,
+            fill: false,
+            pointBackgroundColor: "rgba(255,51,85,0.8)",
+            pointRadius: 3,
+            pointHoverRadius: 5,
+          },
+        ]
+      },
+      options: {
+        ...chartDefaults,
+        interaction: { mode: "index", intersect: false },
+      }
+    });
+  }
+
+  // ── DONUT CHART ───────────────────────────
+  function initDonut() {
+    const ctx = document.getElementById("donutChart").getContext("2d");
+    donutChart = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: ["Normal", "Congestion", "Moderate", "Severe"],
+        datasets: [{
+          data: [0, 0, 0, 0],
+          backgroundColor: [
+            "rgba(0,200,255,0.45)",
+            "rgba(255,170,0,0.45)",
+            "rgba(255,200,0,0.45)",
+            "rgba(255,51,85,0.45)",
+          ],
+          borderColor: [
+            "rgba(0,200,255,0.9)",
+            "rgba(255,170,0,0.9)",
+            "rgba(255,200,0,0.9)",
+            "rgba(255,51,85,0.9)",
+          ],
+          borderWidth: 1.5,
+          hoverOffset: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: "62%",
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              color: "#5a8aaa",
+              font: { size: 11 },
+              boxWidth: 10,
+              padding: 10,
+            }
+          },
+          tooltip: {
+            backgroundColor: "rgba(4,16,32,0.95)",
+            borderColor: "rgba(0,200,255,0.2)",
+            borderWidth: 1,
+            titleColor: "#00c8ff",
+            bodyColor: "#5a8aaa",
+            padding: 10,
+          }
+        }
+      }
+    });
+  }
+
+  // ── HOURLY BAR CHART ──────────────────────
+  async function loadHourly() {
+    const res = await apiFetch("/api/stats/hourly");
+    if (!res) return;
+    const rows = res.data || [];
+
+    const labels     = rows.map(r => `${r.hour}:00`);
+    const accidents  = rows.map(r => r.accidents  || 0);
+    const congestion = rows.map(r => r.congestions || 0);
+    const normal     = rows.map(r => r.normals    || 0);
+
+    const ctx = document.getElementById("hourlyChart").getContext("2d");
+    if (hourlyChart) hourlyChart.destroy();
+
+    hourlyChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Normal",
+            data: normal,
+            backgroundColor: "rgba(0,200,255,0.2)",
+            borderColor: "rgba(0,200,255,0.5)",
+            borderWidth: 1,
+            borderRadius: 2,
+          },
+          {
+            label: "Congestion",
+            data: congestion,
+            backgroundColor: "rgba(255,170,0,0.3)",
+            borderColor: "rgba(255,170,0,0.6)",
+            borderWidth: 1,
+            borderRadius: 2,
+          },
+          {
+            label: "Accident",
+            data: accidents,
+            backgroundColor: "rgba(255,51,85,0.35)",
+            borderColor: "rgba(255,51,85,0.7)",
+            borderWidth: 1,
+            borderRadius: 2,
+          },
+        ]
+      },
+      options: {
+        ...chartDefaults,
+        scales: {
+          x: {
+            stacked: true,
+            grid:  { color: "rgba(0,200,255,0.04)" },
+            ticks: { color: "#2a4a60", font: { size: 9 } }
+          },
+          y: {
+            stacked: true,
+            grid:  { color: "rgba(0,200,255,0.04)" },
+            ticks: { color: "#2a4a60", font: { size: 9 } }
+          }
+        }
+      }
+    });
+
+    // Build peak hours list
+    renderPeakHours(rows);
+  }
+
+  // ── PEAK HOURS ────────────────────────────
+  function renderPeakHours(rows) {
+    const list = document.getElementById("peakList");
+    if (!rows || rows.length === 0) {
+      list.innerHTML = `<div class="no-data">NO DATA TODAY</div>`;
+      return;
+    }
+
+    // Sort by total descending, take top 8
+    const sorted = [...rows]
+      .sort((a, b) => (b.total || 0) - (a.total || 0))
+      .slice(0, 8);
+
+    const maxTotal = sorted[0]?.total || 1;
+
+    list.innerHTML = sorted.map(r => {
+      const pct = Math.round(((r.total || 0) / maxTotal) * 100);
+      const hasAccident = (r.accidents || 0) > 0;
+      const barColor = hasAccident
+        ? "linear-gradient(90deg, var(--blue-dark), var(--accent-red))"
+        : "linear-gradient(90deg, var(--blue-dark), var(--blue-bright))";
+
+      return `
+        <div class="peak-row">
+          <div class="peak-hour">${r.hour}:00</div>
+          <div class="peak-bar-wrap">
+            <div class="peak-bar-fill"
+              style="width:${pct}%; background:${barColor};"></div>
+          </div>
+          <div class="peak-count">${r.total || 0}</div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  // ── BOOT ─────────────────────────────────
+  async function boot() {
+    initDonut();
+    await Promise.all([
+      loadKPIs(),
+      loadDailyTrend(7),
+      loadHourly(),
+    ]);
+
+    // Live status
+    startStatusPoll(null);
+
+    // Refresh every 60s
+    setInterval(() => {
+      loadKPIs();
+      loadHourly();
+    }, 60000);
+  }
+
+  boot();
+</script>
+</body>
+</html>

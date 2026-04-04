@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart Traffic — Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .settings-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  /* ── SETTINGS NAV ── */
+  .settings-nav {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    position: sticky;
+    top: 80px;
+  }
+
+  .settings-nav-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+  }
+
+  .settings-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+
+  .settings-nav-item:hover {
+    background: rgba(0,200,255,0.05);
+    color: var(--text-primary);
+  }
+
+  .settings-nav-item.active {
+    background: rgba(0,200,255,0.08);
+    color: var(--blue-bright);
+    border-left-color: var(--blue-bright);
+  }
+
+  /* ── SETTINGS SECTIONS ── */
+  .settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .settings-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .settings-card:hover { border-color: var(--border-bright); }
+
+  .settings-card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .settings-card-icon { font-size: 18px; }
+
+  .settings-card-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 1px;
+  }
+
+  .settings-card-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .settings-card-body { padding: 20px; }
+
+  /* Setting row */
+  .setting-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(0,200,255,0.04);
+  }
+
+  .setting-row:last-child { border-bottom: none; }
+
+  .setting-info { flex: 1; }
+
+  .setting-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+  }
+
+  .setting-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .setting-control { flex-shrink: 0; }
+
+  /* Toggle switch */
+  .toggle {
+    position: relative;
+    width: 44px; height: 24px;
+    flex-shrink: 0;
+  }
+
+  .toggle input { opacity: 0; width: 0; height: 0; }
+
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    left: 3px; top: 3px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+  }
+
+  .toggle input:checked + .toggle-slider {
+    background: rgba(0,200,255,0.15);
+    border-color: var(--blue-bright);
+  }
+
+  .toggle input:checked + .toggle-slider::before {
+    transform: translateX(20px);
+    background: var(--blue-bright);
+  }
+
+  /* Number input with +/- buttons */
+  .number-control {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .number-btn {
+    width: 30px; height: 34px;
+    background: rgba(0,50,100,0.3);
+    border: none;
+    color: var(--blue-bright);
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .number-btn:hover { background: rgba(0,100,180,0.4); }
+
+  .number-input {
+    width: 56px;
+    height: 34px;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    color: var(--text-primary);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    text-align: center;
+    outline: none;
+  }
+
+  /* Slider */
+  .range-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .range-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--blue-bright);
+    min-width: 40px;
+    text-align: right;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 140px;
+    height: 4px;
+    background: var(--bg-deep);
+    border-radius: 2px;
+    outline: none;
+    border: 1px solid var(--border);
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--blue-bright);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(0,200,255,0.5);
+  }
+
+  /* Color badge */
+  .color-val {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    border: 1px solid;
+  }
+
+  /* Status indicator */
+  .system-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0,200,255,0.04);
+  }
+
+  .system-status-row:last-child { border-bottom: none; }
+
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+  }
+
+  .indicator-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+
+  .indicator-dot.online  {
+    background: var(--accent-green);
+    box-shadow: 0 0 6px var(--accent-green);
+    animation: pulseDot 1.5s ease-in-out infinite;
+  }
+
+  .indicator-dot.offline {
+    background: var(--accent-red);
+    box-shadow: 0 0 6px var(--accent-red);
+  }
+
+  .indicator-dot.warning {
+    background: var(--accent-orange);
+    box-shadow: 0 0 6px var(--accent-orange);
+  }
+
+  /* Account card */
+  .account-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .account-avatar-lg {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue-mid), var(--blue-bright));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: #000;
+    flex-shrink: 0;
+    border: 2px solid var(--blue-bright);
+    box-shadow: 0 0 16px rgba(0,200,255,0.2);
+  }
+
+  .account-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .account-role {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: rgba(0,200,255,0.1);
+    border: 1px solid rgba(0,200,255,0.2);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--blue-bright);
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  /* Save button row */
+  .save-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    margin-top: 16px;
+  }
+
+  .saved-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-green);
+    display: none;
+  }
+  .saved-badge.show { display: block; }
+
+  /* Danger zone */
+  .danger-zone {
+    border-color: rgba(255,51,85,0.2) !important;
+  }
+
+  .danger-zone .settings-card-header {
+    border-bottom-color: rgba(255,51,85,0.1);
+    background: rgba(255,51,85,0.03);
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <header class="header" id="header"></header>
+
+  <main class="main-content fade-in">
+
+    <div class="flex-between mb-16">
+      <div>
+        <div class="page-title">Settings</div>
+        <div class="page-sub">Configure detection thresholds, camera and account preferences</div>
+      </div>
+    </div>
+
+    <div class="settings-layout">
+
+      <!-- ── SETTINGS NAV ── -->
+      <div class="settings-nav">
+        <div class="settings-nav-header">// SECTIONS</div>
+        <a class="settings-nav-item active" href="#detection">🎯 Detection</a>
+        <a class="settings-nav-item" href="#camera">📷 Camera</a>
+        <a class="settings-nav-item" href="#system">⚙ System</a>
+        <a class="settings-nav-item" href="#account">👤 Account</a>
+        <a class="settings-nav-item" href="#danger" style="color:var(--accent-red);">⚠ Danger Zone</a>
+      </div>
+
+      <!-- ── SETTINGS CONTENT ── -->
+      <div class="settings-section">
+
+        <!-- DETECTION SETTINGS -->
+        <div class="settings-card" id="detection">
+          <div class="settings-card-header">
+            <span class="settings-card-icon">🎯</span>
+            <div>
+              <div class="settings-card-title">Detection Thresholds</div>
+              <div class="settings-card-desc">Configure how the YOLO models classify events</div>
+            </div>
+          </div>
+          <div class="settings-card-body">
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">Congestion Threshold</div>
+                <div class="setting-desc">
+                  Minimum number of vehicles in frame to trigger a CONGESTION status.
+                </div>
+              </div>
+              <div class="setting-control">
+                <div class="number-control">
+                  <button class="number-btn"
+                    onclick="adjustNum('congThreshold', -1)">−</button>
+                  <input class="number-input" id="congThreshold"
+                    type="number" value="6" min="1" max="20"/>
+                  <button class="number-btn"
+                    onclick="adjustNum('congThreshold', 1)">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">Accident Min Confidence</div>
+                <div class="setting-desc">
+                  Minimum confidence score (%) for accident model to trigger an alert.
+                  Higher = fewer false positives.
+                </div>
+              </div>
+              <div class="setting-control">
+                <div class="range-wrap">
+                  <input type="range" id="accConfMin" min="30" max="95" value="60"
+                    oninput="document.getElementById('accConfMinVal').textContent=this.value+'%'"/>
+                  <span class="range-val" id="accConfMinVal">60%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">Accident Override Confidence</div>
+                <div class="setting-desc">
+                  Confidence threshold to override CONGESTION with ACCIDENT status.
+                </div>
+              </div>
+              <div class="setting-control">
+                <div class="range-wrap">
+                  <input type="range" id="accConfOverride" min="50" max="99" value="75"
+                    oninput="document.getElementById('accConfOverrideVal').textContent=this.value+'%'"/>
+                  <span class="range-val" id="accConfOverrideVal">75%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">Max Vehicles for Accident</div>
+                <div class="setting-desc">
+                  Accident detection is blocked if more vehicles than this are detected.
+                  Prevents misclassifying traffic jams as accidents.
+                </div>
+              </div>
+              <div class="setting-control">
+                <div class="number-control">
+                  <button class="number-btn"
+                    onclick="adjustNum('accMaxVehicles', -1)">−</button>
+                  <input class="number-input" id="accMaxVehicles"
+                    type="number" value="8" min="1" max="30"/>
+                  <button class="number-btn"
+                    onclick="adjustNum('accMaxVehicles', 1)">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">Vehicle Detection Confidence</div>
+                <div class="setting-desc">
+                  Minimum confidence for YOLO11n to count a detected object as a vehicle.
+                </div>
+              </div>
+              <div class="setting-control">
+                <div class="range-wrap">
+                  <input type="range" id="vehConf" min="10" max="90" value="35"
+                    oninput="document.getElementById('vehConfVal').textContent=this.value+'%'"/>
+                  <span class="range-val" id="vehConfVal">35%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="save-row">
+              <span class="saved-badge" id="detSavedBadge">✓ Settings noted</span>
+              <button class="btn btn-outline" onclick="resetDetection()">Reset Defaults</button>
+              <button class="btn btn-primary" onclick="saveDetection()">Save Detection Settings</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- CAMERA SETTINGS -->
+        <div class="settings-card" id="camera">
+          <div class="settings-card-header">
+            <span class="settings-card-icon">📷</span>
+            <div>
+              <div class="settings-card-title">Camera Configuration</div>
+              <div class="settings-card-desc">ESP32-CAM stream and capture settings</div>
+            </div>
+          </div>
+          <div class="settings-card-body">
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">ESP32-CAM IP Address</div>
+                <div class="setting-desc">Current camera stream IP on your local network.</div>
+              </div>
+              <div class="setting-control">
+                <input class="input" id="camIP" value="192.168.8.122"
+                  style="width:160px; font-family:'Share Tech Mono',monospace; font-size:12px;"/>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">Stream Mode</div>
+                <div class="setting-desc">
+                  MJPEG stream is continuous. Snapshot polls the camera every N seconds.
+                </div>
+              </div>
+              <div class="setting-control">
+                <select class="input" id="streamMode"
+                  style="font-size:12px; padding:7px 28px 7px 10px;">
+                  <option value="stream">MJPEG Stream</option>
+                  <option value="snapshot">Snapshot Poll</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">Frame Skip</div>
+                <div class="setting-desc">
+                  Run detection every N frames. Higher = better performance, lower accuracy.
+                </div>
+              </div>
+              <div class="setting-control">
+                <div class="number-control">
+                  <button class="number-btn"
+                    onclick="adjustNum('frameSkip', -1)">−</button>
+                  <input class="number-input" id="frameSkip"
+                    type="number" value="2" min="1" max="10"/>
+                  <button class="number-btn"
+                    onclick="adjustNum('frameSkip', 1)">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">Save to Database Every N Frames</div>
+                <div class="setting-desc">
+                  How often detections are posted to the backend API and saved to SQLite.
+                </div>
+              </div>
+              <div class="setting-control">
+                <div class="number-control">
+                  <button class="number-btn"
+                    onclick="adjustNum('saveEvery', -5)">−</button>
+                  <input class="number-input" id="saveEvery"
+                    type="number" value="30" min="5" max="300"
+                    style="width:64px;"/>
+                  <button class="number-btn"
+                    onclick="adjustNum('saveEvery', 5)">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="save-row">
+              <span class="saved-badge" id="camSavedBadge">✓ Settings noted</span>
+              <button class="btn btn-primary" onclick="saveCamera()">Save Camera Settings</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SYSTEM STATUS -->
+        <div class="settings-card" id="system">
+          <div class="settings-card-header">
+            <span class="settings-card-icon">⚙</span>
+            <div>
+              <div class="settings-card-title">System Status</div>
+              <div class="settings-card-desc">Live status of all connected components</div>
+            </div>
+          </div>
+          <div class="settings-card-body">
+
+            <div class="system-status-row">
+              <span style="font-size:13px; color:var(--text-primary);">FastAPI Backend</span>
+              <div class="status-indicator" id="statusAPI">
+                <div class="indicator-dot warning"></div>
+                <span>CHECKING...</span>
+              </div>
+            </div>
+
+            <div class="system-status-row">
+              <span style="font-size:13px; color:var(--text-primary);">SQLite Database</span>
+              <div class="status-indicator" id="statusDB">
+                <div class="indicator-dot warning"></div>
+                <span>CHECKING...</span>
+              </div>
+            </div>
+
+            <div class="system-status-row">
+              <span style="font-size:13px; color:var(--text-primary);">ESP32-CAM Stream</span>
+              <div class="status-indicator" id="statusCam">
+                <div class="indicator-dot warning"></div>
+                <span>CHECKING...</span>
+              </div>
+            </div>
+
+            <div class="system-status-row">
+              <span style="font-size:13px; color:var(--text-primary);">Vehicle Model (YOLO11n)</span>
+              <div class="status-indicator">
+                <div class="indicator-dot online"></div>
+                <span style="color:var(--accent-green);">LOADED</span>
+              </div>
+            </div>
+
+            <div class="system-status-row">
+              <span style="font-size:13px; color:var(--text-primary);">Accident Model (best.pt)</span>
+              <div class="status-indicator">
+                <div class="indicator-dot online"></div>
+                <span style="color:var(--accent-green);">LOADED · mAP50: 97.9%</span>
+              </div>
+            </div>
+
+            <div class="system-status-row">
+              <span style="font-size:13px; color:var(--text-primary);">Auto Refresh</span>
+              <div class="status-indicator">
+                <div class="indicator-dot online"></div>
+                <span style="color:var(--accent-green);">EVERY 5 SECONDS</span>
+              </div>
+            </div>
+
+            <div style="margin-top:16px;">
+              <button class="btn btn-outline" onclick="checkAllStatus()" style="width:100%;">
+                ↺ Refresh Status
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACCOUNT -->
+        <div class="settings-card" id="account">
+          <div class="settings-card-header">
+            <span class="settings-card-icon">👤</span>
+            <div>
+              <div class="settings-card-title">Account</div>
+              <div class="settings-card-desc">Your profile and session info</div>
+            </div>
+          </div>
+          <div class="settings-card-body">
+
+            <div class="account-info">
+              <div class="account-avatar-lg" id="accountAvatar">?</div>
+              <div>
+                <div class="account-name" id="accountName">—</div>
+                <div class="account-role" id="accountRole">USER</div>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">Username</div>
+              </div>
+              <div class="setting-control">
+                <span style="font-family:'Share Tech Mono',monospace; font-size:13px;
+                             color:var(--text-muted);" id="settingUsername">—</span>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">Role</div>
+              </div>
+              <div class="setting-control">
+                <span style="font-family:'Share Tech Mono',monospace; font-size:13px;
+                             color:var(--blue-bright);" id="settingRole">—</span>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">Session Token</div>
+                <div class="setting-desc">Your current login session.</div>
+              </div>
+              <div class="setting-control">
+                <span style="font-family:'Share Tech Mono',monospace; font-size:11px;
+                             color:var(--text-dim);">
+                  Active
+                </span>
+              </div>
+            </div>
+
+            <div class="save-row" style="border-top:none; padding-top:0;">
+              <button class="btn btn-danger" onclick="logout()">⏻ Sign Out</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- DANGER ZONE -->
+        <div class="settings-card danger-zone" id="danger">
+          <div class="settings-card-header">
+            <span class="settings-card-icon">⚠</span>
+            <div>
+              <div class="settings-card-title" style="color:var(--accent-red);">Danger Zone</div>
+              <div class="settings-card-desc">Irreversible actions — proceed with caution</div>
+            </div>
+          </div>
+          <div class="settings-card-body">
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">Clear Today's Records</div>
+                <div class="setting-desc">
+                  Delete all detection records from today only. Cannot be undone.
+                </div>
+              </div>
+              <div class="setting-control">
+                <button class="btn btn-danger" onclick="confirmClearToday()">
+                  Clear Today
+                </button>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">Export Before Clearing</div>
+                <div class="setting-desc">
+                  Always export your data before clearing. Download full database as CSV.
+                </div>
+              </div>
+              <div class="setting-control">
+                <button class="btn btn-outline" onclick="exportAll()">
+                  ⬇ Full Export
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="footer" id="footer"></footer>
+</div>
+
+<script src="js/shared.js"></script>
+<script>
+  initPage("settings", "Settings", "// SETTINGS / CONFIG");
+
+  const API_BASE = "http://localhost:8000";
+
+  // ── LOAD USER INFO ────────────────────────
+  function loadUserInfo() {
+    const username = getUsername();
+    const role     = getRole();
+
+    document.getElementById("accountAvatar").textContent =
+      username.charAt(0).toUpperCase();
+    document.getElementById("accountName").textContent    = username;
+    document.getElementById("accountRole").textContent    = role.toUpperCase();
+    document.getElementById("settingUsername").textContent = username;
+    document.getElementById("settingRole").textContent    = role.toUpperCase();
+  }
+
+  // ── NUMBER CONTROL ────────────────────────
+  function adjustNum(id, delta) {
+    const el  = document.getElementById(id);
+    const val = parseInt(el.value) + delta;
+    const min = parseInt(el.min) || 0;
+    const max = parseInt(el.max) || 999;
+    el.value  = Math.max(min, Math.min(max, val));
+  }
+
+  // ── SAVE DETECTION ────────────────────────
+  function saveDetection() {
+    const settings = {
+      congestion_threshold:    document.getElementById("congThreshold").value,
+      accident_conf_min:       document.getElementById("accConfMin").value,
+      accident_conf_override:  document.getElementById("accConfOverride").value,
+      accident_max_vehicles:   document.getElementById("accMaxVehicles").value,
+      vehicle_conf_min:        document.getElementById("vehConf").value,
+    };
+    localStorage.setItem("detectionSettings", JSON.stringify(settings));
+    showSaved("detSavedBadge");
+    showToast("✓ Detection settings saved!", "success");
+  }
+
+  function resetDetection() {
+    document.getElementById("congThreshold").value  = 6;
+    document.getElementById("accConfMin").value     = 60;
+    document.getElementById("accConfMin").dispatchEvent(new Event("input"));
+    document.getElementById("accConfOverride").value = 75;
+    document.getElementById("accConfOverride").dispatchEvent(new Event("input"));
+    document.getElementById("accMaxVehicles").value = 8;
+    document.getElementById("vehConf").value        = 35;
+    document.getElementById("vehConf").dispatchEvent(new Event("input"));
+    showToast("↺ Detection settings reset to defaults.", "info");
+  }
+
+  // ── SAVE CAMERA ───────────────────────────
+  function saveCamera() {
+    const settings = {
+      cam_ip:      document.getElementById("camIP").value,
+      stream_mode: document.getElementById("streamMode").value,
+      frame_skip:  document.getElementById("frameSkip").value,
+      save_every:  document.getElementById("saveEvery").value,
+    };
+    localStorage.setItem("cameraSettings", JSON.stringify(settings));
+    showSaved("camSavedBadge");
+    showToast("✓ Camera settings saved!", "success");
+  }
+
+  // ── SAVED BADGE ───────────────────────────
+  function showSaved(id) {
+    const el = document.getElementById(id);
+    el.classList.add("show");
+    setTimeout(() => el.classList.remove("show"), 3000);
+  }
+
+  // ── SYSTEM STATUS CHECK ───────────────────
+  async function checkAllStatus() {
+    // Backend
+    try {
+      const r = await fetch(`${API_BASE}/`, { signal: AbortSignal.timeout(3000) });
+      setStatus("statusAPI", r.ok, r.ok ? "ONLINE" : "ERROR");
+    } catch {
+      setStatus("statusAPI", false, "OFFLINE");
+    }
+
+    // DB (check via detections endpoint)
+    try {
+      const r = await fetch(`${API_BASE}/api/status`, {
+        headers: authHeaders(),
+        signal: AbortSignal.timeout(3000)
+      });
+      setStatus("statusDB", r.ok, r.ok ? "CONNECTED" : "ERROR");
+    } catch {
+      setStatus("statusDB", false, "ERROR");
+    }
+
+    // Camera
+    const camIP = document.getElementById("camIP")?.value || "192.168.8.122";
+    try {
+      const r = await fetch(`http://${camIP}/capture`, {
+        signal: AbortSignal.timeout(4000),
+        mode: "no-cors"
+      });
+      setStatus("statusCam", true, "ONLINE");
+    } catch {
+      setStatus("statusCam", false, "OFFLINE");
+    }
+  }
+
+  function setStatus(id, online, label) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const color = online ? "var(--accent-green)" : "var(--accent-red)";
+    el.innerHTML = `
+      <div class="indicator-dot ${online ? "online" : "offline"}"></div>
+      <span style="color:${color};">${label}</span>
+    `;
+  }
+
+  // ── DANGER ACTIONS ────────────────────────
+  function confirmClearToday() {
+    const confirmed = confirm(
+      "⚠ Are you sure you want to clear TODAY's detection records?\nThis cannot be undone."
+    );
+    if (confirmed) {
+      showToast("⚠ This feature requires a backend DELETE endpoint.", "info");
+    }
+  }
+
+  async function exportAll() {
+    showToast("⬇ Preparing full export...", "info");
+    try {
+      const res = await fetch(`${API_BASE}/api/report/csv`, {
+        headers: authHeaders()
+      });
+      const blob = await res.blob();
+      const link = document.createElement("a");
+      link.href  = URL.createObjectURL(blob);
+      link.download = `full_export_${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+      showToast("✓ Full export downloaded!", "success");
+    } catch {
+      showToast("✖ Export failed.", "error");
+    }
+  }
+
+  // ── RESTORE SAVED SETTINGS ────────────────
+  function restoreSettings() {
+    const det = localStorage.getItem("detectionSettings");
+    if (det) {
+      const s = JSON.parse(det);
+      if (s.congestion_threshold)   document.getElementById("congThreshold").value  = s.congestion_threshold;
+      if (s.accident_conf_min)      { document.getElementById("accConfMin").value    = s.accident_conf_min;
+        document.getElementById("accConfMinVal").textContent = s.accident_conf_min + "%"; }
+      if (s.accident_conf_override) { document.getElementById("accConfOverride").value = s.accident_conf_override;
+        document.getElementById("accConfOverrideVal").textContent = s.accident_conf_override + "%"; }
+      if (s.accident_max_vehicles)  document.getElementById("accMaxVehicles").value = s.accident_max_vehicles;
+      if (s.vehicle_conf_min)       { document.getElementById("vehConf").value       = s.vehicle_conf_min;
+        document.getElementById("vehConfVal").textContent = s.vehicle_conf_min + "%"; }
+    }
+
+    const cam = localStorage.getItem("cameraSettings");
+    if (cam) {
+      const s = JSON.parse(cam);
+      if (s.cam_ip)      document.getElementById("camIP").value       = s.cam_ip;
+      if (s.stream_mode) document.getElementById("streamMode").value  = s.stream_mode;
+      if (s.frame_skip)  document.getElementById("frameSkip").value   = s.frame_skip;
+      if (s.save_every)  document.getElementById("saveEvery").value   = s.save_every;
+    }
+  }
+
+  // ── SIDEBAR NAV HIGHLIGHT ─────────────────
+  document.querySelectorAll(".settings-nav-item").forEach(link => {
+    link.addEventListener("click", e => {
+      document.querySelectorAll(".settings-nav-item")
+        .forEach(l => l.classList.remove("active"));
+      link.classList.add("active");
+    });
+  });
+
+  // ── BOOT ─────────────────────────────────
+  loadUserInfo();
+  restoreSettings();
+  checkAllStatus();
+  startStatusPoll(null);
+</script>
+</body>
+</html>
