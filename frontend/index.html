@@ -9,7 +9,6 @@
 <link rel="stylesheet" href="css/style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  /* ── DASHBOARD SPECIFIC ── */
   .status-hero {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -28,30 +27,32 @@
     content: '';
     position: absolute;
     inset: 0;
-    opacity: 0.04;
-    background: radial-gradient(ellipse at left, var(--status-color, var(--accent-green)), transparent 60%);
-    transition: opacity 0.4s;
+    opacity: 0.05;
+    background: radial-gradient(ellipse at left,
+      var(--hero-color, var(--accent-green)), transparent 60%);
+    transition: background 0.5s;
+    pointer-events: none;
   }
 
   .status-hero-left { display: flex; align-items: center; gap: 20px; }
 
   .status-orb {
-    width: 60px; height: 60px;
+    width: 64px; height: 64px;
     border-radius: 50%;
-    background: radial-gradient(circle, var(--status-color, var(--accent-green)), transparent 70%);
-    border: 2px solid var(--status-color, var(--accent-green));
-    box-shadow: 0 0 24px var(--status-color, var(--accent-green));
+    border: 2px solid var(--hero-color, var(--accent-green));
+    box-shadow: 0 0 24px var(--hero-color, var(--accent-green));
     animation: orbPulse 2s ease-in-out infinite;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: 24px;
+    transition: border-color 0.4s, box-shadow 0.4s;
   }
 
   @keyframes orbPulse {
-    0%,100% { box-shadow: 0 0 16px var(--status-color, var(--accent-green)); }
-    50%      { box-shadow: 0 0 36px var(--status-color, var(--accent-green)); }
+    0%,100% { box-shadow: 0 0 16px var(--hero-color, var(--accent-green)); }
+    50%      { box-shadow: 0 0 40px var(--hero-color, var(--accent-green)); }
   }
 
   .status-info-label {
@@ -64,11 +65,12 @@
 
   .status-info-value {
     font-family: 'Rajdhani', sans-serif;
-    font-size: 30px;
+    font-size: 32px;
     font-weight: 700;
-    color: var(--status-color, var(--accent-green));
+    color: var(--hero-color, var(--accent-green));
     line-height: 1;
     margin-bottom: 4px;
+    transition: color 0.4s;
   }
 
   .status-info-time {
@@ -79,25 +81,25 @@
 
   .status-hero-right {
     display: flex;
-    gap: 28px;
+    gap: 32px;
     text-align: right;
   }
 
-  .status-meta-item {}
   .status-meta-val {
     font-family: 'Rajdhani', sans-serif;
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 700;
     color: var(--text-primary);
   }
+
   .status-meta-label {
     font-family: 'Share Tech Mono', monospace;
     font-size: 10px;
     color: var(--text-dim);
     letter-spacing: 1px;
+    margin-top: 2px;
   }
 
-  /* Stats grid */
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -105,7 +107,6 @@
     margin-bottom: 20px;
   }
 
-  /* Chart + table row */
   .dashboard-row {
     display: grid;
     grid-template-columns: 1fr 1.2fr;
@@ -113,13 +114,8 @@
     margin-bottom: 20px;
   }
 
-  /* Mini chart canvas */
-  .chart-wrap {
-    position: relative;
-    height: 200px;
-  }
+  .chart-wrap { position: relative; height: 200px; }
 
-  /* Recent incidents */
   .incident-row {
     display: flex;
     align-items: center;
@@ -127,67 +123,15 @@
     border-bottom: 1px solid rgba(0,200,255,0.04);
     gap: 12px;
   }
-
   .incident-row:last-child { border-bottom: none; }
-
-  .incident-icon {
-    font-size: 18px;
-    width: 32px;
-    text-align: center;
-    flex-shrink: 0;
-  }
-
+  .incident-icon { font-size: 18px; width: 32px; text-align: center; flex-shrink: 0; }
   .incident-info { flex: 1; }
-  .incident-status {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-  .incident-meta {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-    margin-top: 2px;
-  }
+  .incident-status { font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 600; }
+  .incident-meta { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-dim); margin-top:2px; }
+  .incident-time { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-muted); text-align: right; flex-shrink: 0; }
 
-  .incident-time {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    color: var(--text-muted);
-    text-align: right;
-    flex-shrink: 0;
-  }
+  .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-  /* Bottom row */
-  .bottom-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-
-  /* Mini trend bars */
-  .trend-bars {
-    display: flex;
-    align-items: flex-end;
-    gap: 4px;
-    height: 60px;
-  }
-
-  .trend-bar {
-    flex: 1;
-    border-radius: 3px 3px 0 0;
-    background: var(--blue-dark);
-    transition: height 0.5s ease;
-    cursor: pointer;
-    position: relative;
-  }
-
-  .trend-bar.has-accident { background: rgba(255,51,85,0.5); }
-  .trend-bar.has-congestion { background: rgba(255,170,0,0.5); }
-  .trend-bar.normal { background: rgba(0,200,255,0.3); }
-
-  /* Empty state */
   .empty-state {
     text-align: center;
     padding: 30px;
@@ -203,31 +147,30 @@
 
 <div class="app-shell">
   <aside class="sidebar" id="sidebar"></aside>
-
   <header class="header" id="header"></header>
 
   <main class="main-content fade-in">
 
-    <!-- ── LIVE STATUS HERO ── -->
+    <!-- ── STATUS HERO ── -->
     <div class="status-hero" id="statusHero">
       <div class="status-hero-left">
         <div class="status-orb" id="statusOrb">✓</div>
         <div>
           <div class="status-info-label">// CURRENT STATUS</div>
           <div class="status-info-value" id="statusValue">NORMAL</div>
-          <div class="status-info-time" id="statusTime">Updated just now</div>
+          <div class="status-info-time" id="statusTime">Waiting for data...</div>
         </div>
       </div>
       <div class="status-hero-right">
-        <div class="status-meta-item">
+        <div>
           <div class="status-meta-val" id="heroVehicles">0</div>
           <div class="status-meta-label">VEHICLES</div>
         </div>
-        <div class="status-meta-item">
+        <div>
           <div class="status-meta-val" id="heroConf">0%</div>
           <div class="status-meta-label">CONFIDENCE</div>
         </div>
-        <div class="status-meta-item">
+        <div>
           <div class="status-meta-val" id="heroToday">0</div>
           <div class="status-meta-label">TODAY</div>
         </div>
@@ -251,7 +194,7 @@
       <div class="stat-card orange">
         <div class="stat-label">Congestion Events</div>
         <div class="stat-value" id="statCongestion">—</div>
-        <div class="stat-sub">Traffic jams detected</div>
+        <div class="stat-sub">Traffic jams</div>
         <div class="stat-icon">🚦</div>
       </div>
       <div class="stat-card green">
@@ -262,51 +205,40 @@
       </div>
     </div>
 
-    <!-- ── CHART + RECENT INCIDENTS ── -->
+    <!-- ── CHART + RECENT ── -->
     <div class="dashboard-row">
-
-      <!-- Hourly Chart -->
       <div class="card">
         <div class="card-title">Today's Hourly Activity</div>
         <div class="chart-wrap">
           <canvas id="hourlyChart"></canvas>
         </div>
       </div>
-
-      <!-- Recent Incidents -->
       <div class="card">
         <div class="flex-between mb-16">
           <div class="card-title" style="margin-bottom:0">Recent Incidents</div>
-          <a href="incidents.html" class="btn btn-outline" style="padding:5px 12px; font-size:11px;">
-            View All →
-          </a>
+          <a href="incidents.html" class="btn btn-outline"
+            style="padding:5px 12px; font-size:11px;">View All →</a>
         </div>
         <div id="recentList">
           <div class="empty-state">LOADING...</div>
         </div>
       </div>
-
     </div>
 
     <!-- ── BOTTOM ROW ── -->
     <div class="bottom-row">
-
-      <!-- 7-day summary -->
       <div class="card">
         <div class="card-title">7-Day Overview</div>
         <div class="chart-wrap">
           <canvas id="weeklyChart"></canvas>
         </div>
       </div>
-
-      <!-- Status breakdown donut -->
       <div class="card">
         <div class="card-title">Status Breakdown</div>
         <div class="chart-wrap">
           <canvas id="donutChart"></canvas>
         </div>
       </div>
-
     </div>
 
   </main>
@@ -316,28 +248,45 @@
 
 <script src="js/shared.js"></script>
 <script>
-  // ── INIT ──────────────────────────────────
+  // ── INIT PAGE ─────────────────────────────
   initPage("index", "Dashboard", "// HOME / DASHBOARD");
 
   let hourlyChart, weeklyChart, donutChart;
 
-  // ── STATUS HERO UPDATE ───────────────────
+  // ─────────────────────────────────────────
+  //  ★ STATUS HERO UPDATE
+  //  This function is called by startStatusPoll
+  //  every 5 seconds with fresh API data
+  // ─────────────────────────────────────────
   function updateStatusHero(data) {
     if (!data) return;
 
-    const status  = data.status || "NORMAL";
+    const status  = (data.status || "NORMAL").toUpperCase();
     const color   = getStatusColor(status);
-    const icon    = status.includes("ACCIDENT") ? "✖" :
+    const icon    = status.includes("ACCIDENT")   ? "✖" :
                     status.includes("CONGESTION") ? "⚠" : "✓";
 
-    document.documentElement.style.setProperty("--status-color", color);
-    document.getElementById("statusValue").textContent  = status;
-    document.getElementById("statusValue").style.color  = color;
-    document.getElementById("statusOrb").textContent    = icon;
-    document.getElementById("statusOrb").style.borderColor = color;
-    document.getElementById("statusOrb").style.boxShadow   = `0 0 24px ${color}`;
-    document.getElementById("statusTime").textContent   =
-      data.timestamp ? `Updated ${timeAgo(data.timestamp)}` : "No data yet";
+    // Set CSS variable so glow + radial bg update
+    document.getElementById("statusHero").style.setProperty("--hero-color", color);
+    document.getElementById("statusHero").style.borderColor =
+      status === "NORMAL" ? "" : color;
+
+    // Orb
+    const orb = document.getElementById("statusOrb");
+    orb.textContent        = icon;
+    orb.style.borderColor  = color;
+    orb.style.boxShadow    = `0 0 24px ${color}`;
+
+    // Text
+    const valEl = document.getElementById("statusValue");
+    valEl.textContent  = status;
+    valEl.style.color  = color;
+
+    // Time
+    document.getElementById("statusTime").textContent =
+      data.timestamp ? `Updated ${timeAgo(data.timestamp)}` : "Just now";
+
+    // Metrics
     document.getElementById("heroVehicles").textContent = data.vehicle_count ?? 0;
     document.getElementById("heroConf").textContent =
       data.confidence ? `${Math.round(data.confidence * 100)}%` : "0%";
@@ -348,18 +297,16 @@
     const data = await apiFetch("/api/stats/summary");
     if (!data) return;
 
-    document.getElementById("statTotal").textContent      = data.total_detections ?? 0;
-    document.getElementById("statAccidents").textContent  = data.total_accidents ?? 0;
-    document.getElementById("statCongestion").textContent = data.total_congestion ?? 0;
+    document.getElementById("statTotal").textContent      = data.total_detections  ?? 0;
+    document.getElementById("statAccidents").textContent  = data.total_accidents   ?? 0;
+    document.getElementById("statCongestion").textContent = data.total_congestion  ?? 0;
     document.getElementById("statAvg").textContent        =
       data.avg_vehicle_count ? data.avg_vehicle_count.toFixed(1) : "0";
     document.getElementById("heroToday").textContent      = data.today_total ?? 0;
 
-    // Footer
     const ft = document.getElementById("footerDetections");
     if (ft) ft.textContent = `DETECTIONS: ${data.total_detections ?? 0}`;
 
-    // Update donut chart
     if (donutChart) {
       donutChart.data.datasets[0].data = [
         data.total_normal     ?? 0,
@@ -377,65 +324,31 @@
     if (!res) return;
     const rows = res.data || [];
 
-    const labels     = rows.map(r => `${r.hour}:00`);
-    const accidents  = rows.map(r => r.accidents || 0);
-    const congestion = rows.map(r => r.congestions || 0);
-    const normal     = rows.map(r => r.normals || 0);
-
     const ctx = document.getElementById("hourlyChart").getContext("2d");
-
     if (hourlyChart) hourlyChart.destroy();
 
     hourlyChart = new Chart(ctx, {
       type: "bar",
       data: {
-        labels,
+        labels: rows.map(r => `${r.hour}:00`),
         datasets: [
-          {
-            label: "Normal",
-            data: normal,
-            backgroundColor: "rgba(0,200,255,0.25)",
-            borderColor: "rgba(0,200,255,0.6)",
-            borderWidth: 1,
-            borderRadius: 3,
-          },
-          {
-            label: "Congestion",
-            data: congestion,
-            backgroundColor: "rgba(255,170,0,0.3)",
-            borderColor: "rgba(255,170,0,0.7)",
-            borderWidth: 1,
-            borderRadius: 3,
-          },
-          {
-            label: "Accident",
-            data: accidents,
-            backgroundColor: "rgba(255,51,85,0.35)",
-            borderColor: "rgba(255,51,85,0.8)",
-            borderWidth: 1,
-            borderRadius: 3,
-          },
+          { label: "Normal",    data: rows.map(r => r.normals    || 0),
+            backgroundColor: "rgba(0,200,255,0.25)", borderColor: "rgba(0,200,255,0.6)",
+            borderWidth:1, borderRadius:3 },
+          { label: "Congestion",data: rows.map(r => r.congestions|| 0),
+            backgroundColor: "rgba(255,170,0,0.3)",  borderColor: "rgba(255,170,0,0.7)",
+            borderWidth:1, borderRadius:3 },
+          { label: "Accident",  data: rows.map(r => r.accidents  || 0),
+            backgroundColor: "rgba(255,51,85,0.35)", borderColor: "rgba(255,51,85,0.8)",
+            borderWidth:1, borderRadius:3 },
         ]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            labels: { color: "#5a8aaa", font: { size: 11 }, boxWidth: 10 }
-          }
-        },
-        scales: {
-          x: {
-            stacked: true,
-            grid:  { color: "rgba(0,200,255,0.05)" },
-            ticks: { color: "#2a4a60", font: { size: 10 } }
-          },
-          y: {
-            stacked: true,
-            grid:  { color: "rgba(0,200,255,0.05)" },
-            ticks: { color: "#2a4a60", font: { size: 10 } }
-          }
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ labels:{ color:"#5a8aaa", font:{size:11}, boxWidth:10 } } },
+        scales:{
+          x:{ stacked:true, grid:{color:"rgba(0,200,255,0.05)"}, ticks:{color:"#2a4a60",font:{size:10}} },
+          y:{ stacked:true, grid:{color:"rgba(0,200,255,0.05)"}, ticks:{color:"#2a4a60",font:{size:10}} }
         }
       }
     });
@@ -447,59 +360,28 @@
     if (!res) return;
     const rows = res.data || [];
 
-    const labels     = rows.map(r => r.date ? r.date.slice(5) : "");
-    const accidents  = rows.map(r => r.total_accidents || 0);
-    const congestion = rows.map(r => r.total_congestion || 0);
-
     const ctx = document.getElementById("weeklyChart").getContext("2d");
     if (weeklyChart) weeklyChart.destroy();
 
     weeklyChart = new Chart(ctx, {
       type: "line",
       data: {
-        labels,
+        labels: rows.map(r => r.date ? r.date.slice(5) : ""),
         datasets: [
-          {
-            label: "Accidents",
-            data: accidents,
-            borderColor: "rgba(255,51,85,0.8)",
-            backgroundColor: "rgba(255,51,85,0.08)",
-            borderWidth: 2,
-            tension: 0.4,
-            fill: true,
-            pointBackgroundColor: "rgba(255,51,85,0.8)",
-            pointRadius: 4,
-          },
-          {
-            label: "Congestion",
-            data: congestion,
-            borderColor: "rgba(255,170,0,0.8)",
-            backgroundColor: "rgba(255,170,0,0.06)",
-            borderWidth: 2,
-            tension: 0.4,
-            fill: true,
-            pointBackgroundColor: "rgba(255,170,0,0.8)",
-            pointRadius: 4,
-          }
+          { label:"Accidents",  data: rows.map(r => r.total_accidents  || 0),
+            borderColor:"rgba(255,51,85,0.8)",  backgroundColor:"rgba(255,51,85,0.08)",
+            borderWidth:2, tension:0.4, fill:true, pointRadius:4 },
+          { label:"Congestion", data: rows.map(r => r.total_congestion || 0),
+            borderColor:"rgba(255,170,0,0.8)",  backgroundColor:"rgba(255,170,0,0.06)",
+            borderWidth:2, tension:0.4, fill:true, pointRadius:4 },
         ]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            labels: { color: "#5a8aaa", font: { size: 11 }, boxWidth: 10 }
-          }
-        },
-        scales: {
-          x: {
-            grid:  { color: "rgba(0,200,255,0.05)" },
-            ticks: { color: "#2a4a60", font: { size: 10 } }
-          },
-          y: {
-            grid:  { color: "rgba(0,200,255,0.05)" },
-            ticks: { color: "#2a4a60", font: { size: 10 } }
-          }
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ labels:{ color:"#5a8aaa", font:{size:11}, boxWidth:10 } } },
+        scales:{
+          x:{ grid:{color:"rgba(0,200,255,0.05)"}, ticks:{color:"#2a4a60",font:{size:10}} },
+          y:{ grid:{color:"rgba(0,200,255,0.05)"}, ticks:{color:"#2a4a60",font:{size:10}} }
         }
       }
     });
@@ -511,33 +393,25 @@
     donutChart = new Chart(ctx, {
       type: "doughnut",
       data: {
-        labels: ["Normal", "Congestion", "Moderate", "Severe"],
-        datasets: [{
-          data: [0, 0, 0, 0],
-          backgroundColor: [
-            "rgba(0,200,255,0.5)",
-            "rgba(255,170,0,0.5)",
-            "rgba(255,200,0,0.5)",
-            "rgba(255,51,85,0.5)",
+        labels: ["Normal","Congestion","Moderate","Severe"],
+        datasets:[{
+          data:[0,0,0,0],
+          backgroundColor:[
+            "rgba(0,200,255,0.5)","rgba(255,170,0,0.5)",
+            "rgba(255,200,0,0.5)","rgba(255,51,85,0.5)"
           ],
-          borderColor: [
-            "rgba(0,200,255,0.8)",
-            "rgba(255,170,0,0.8)",
-            "rgba(255,200,0,0.8)",
-            "rgba(255,51,85,0.8)",
+          borderColor:[
+            "rgba(0,200,255,0.8)","rgba(255,170,0,0.8)",
+            "rgba(255,200,0,0.8)","rgba(255,51,85,0.8)"
           ],
-          borderWidth: 1,
+          borderWidth:1,
         }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: "65%",
-        plugins: {
-          legend: {
-            position: "right",
-            labels: { color: "#5a8aaa", font: { size: 11 }, boxWidth: 10, padding: 12 }
-          }
+      options:{
+        responsive:true, maintainAspectRatio:false, cutout:"65%",
+        plugins:{
+          legend:{ position:"right",
+            labels:{ color:"#5a8aaa", font:{size:11}, boxWidth:10, padding:12 } }
         }
       }
     });
@@ -556,11 +430,10 @@
     }
 
     list.innerHTML = rows.map(r => {
-      const isAccident   = r.status.includes("ACCIDENT");
-      const isCongestion = r.status.includes("CONGESTION");
-      const icon  = isAccident ? "🚨" : isCongestion ? "🚦" : "✅";
-      const color = isAccident ? "var(--accent-red)" :
-                    isCongestion ? "var(--accent-orange)" : "var(--accent-green)";
+      const isAcc  = r.status.includes("ACCIDENT");
+      const isCong = r.status.includes("CONGESTION");
+      const icon   = isAcc ? "🚨" : isCong ? "🚦" : "✅";
+      const color  = getStatusColor(r.status);
       return `
         <div class="incident-row">
           <div class="incident-icon">${icon}</div>
@@ -572,14 +445,14 @@
             </div>
           </div>
           <div class="incident-time">${timeAgo(r.timestamp)}</div>
-        </div>
-      `;
+        </div>`;
     }).join("");
   }
 
   // ── BOOT ─────────────────────────────────
   async function boot() {
     initDonut();
+
     await Promise.all([
       loadSummary(),
       loadHourly(),
@@ -587,12 +460,13 @@
       loadRecent(),
     ]);
 
-    // Live status poll every 5s
+    // ★ Start live poll — passes updateStatusHero as callback
+    // Every 5s: fetches /api/status → calls updateStatusHero(data)
     startStatusPoll((data) => {
-      updateStatusHero(data);
+      updateStatusHero(data);  // ← THIS updates the hero card
     });
 
-    // Refresh data every 30s
+    // Refresh summary + recent every 30s
     setInterval(() => {
       loadSummary();
       loadRecent();

@@ -8,8 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <style>
-
-  /* ── LIVE MONITOR LAYOUT ── */
   .monitor-layout {
     display: grid;
     grid-template-columns: 1fr 300px;
@@ -17,12 +15,7 @@
     height: calc(100vh - var(--header-height) - var(--footer-height) - 48px);
   }
 
-  /* ── CAMERA PANEL ── */
-  .camera-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
+  .camera-panel { display: flex; flex-direction: column; gap: 12px; }
 
   .camera-frame {
     flex: 1;
@@ -37,7 +30,6 @@
     min-height: 360px;
   }
 
-  /* Corner HUD decorations */
   .hud-corner {
     position: absolute;
     width: 20px; height: 20px;
@@ -46,384 +38,159 @@
     opacity: 0.7;
     z-index: 5;
   }
-  .hud-tl { top:12px; left:12px; border-width:2px 0 0 2px; }
-  .hud-tr { top:12px; right:12px; border-width:2px 2px 0 0; }
-  .hud-bl { bottom:12px; left:12px; border-width:0 0 2px 2px; }
+  .hud-tl { top:12px; left:12px;   border-width:2px 0 0 2px; }
+  .hud-tr { top:12px; right:12px;  border-width:2px 2px 0 0; }
+  .hud-bl { bottom:12px; left:12px;  border-width:0 0 2px 2px; }
   .hud-br { bottom:12px; right:12px; border-width:0 2px 2px 0; }
 
-  /* Camera feed image */
-  .cam-feed {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
+  .cam-feed { width:100%; height:100%; object-fit:cover; display:block; }
 
-  /* Offline placeholder */
   .cam-offline {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 12px;
     color: var(--text-dim);
     font-family: 'Share Tech Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 2px;
+    font-size: 12px; letter-spacing: 2px;
   }
+  .cam-offline-icon { font-size: 48px; opacity: 0.3; }
 
-  .cam-offline-icon {
-    font-size: 48px;
-    opacity: 0.3;
-  }
-
-  /* Status overlay on camera */
   .cam-overlay {
-    position: absolute;
-    top: 0; left: 0; right: 0;
+    position: absolute; top:0; left:0; right:0;
     padding: 12px 16px;
     background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    display: flex; align-items: center; justify-content: space-between;
     z-index: 4;
   }
 
   .cam-status-badge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 14px;
-    border-radius: 4px;
-    border: 1px solid;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    backdrop-filter: blur(4px);
-    transition: all 0.4s;
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 14px; border-radius: 4px; border: 1px solid;
+    font-family: 'Rajdhani', sans-serif; font-size: 15px;
+    font-weight: 700; letter-spacing: 2px;
+    backdrop-filter: blur(4px); transition: all 0.4s;
   }
+  .cam-status-badge.normal     { background:rgba(0,255,136,0.12); border-color:rgba(0,255,136,0.4); color:var(--accent-green); }
+  .cam-status-badge.congestion { background:rgba(255,170,0,0.12); border-color:rgba(255,170,0,0.4); color:var(--accent-orange); }
+  .cam-status-badge.accident   {
+    background:rgba(255,51,85,0.15); border-color:rgba(255,51,85,0.5);
+    color:var(--accent-red); animation:alertFlash 1s ease-in-out infinite;
+  }
+  @keyframes alertFlash { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
 
-  .cam-status-badge.normal {
-    background: rgba(0,255,136,0.12);
-    border-color: rgba(0,255,136,0.4);
-    color: var(--accent-green);
-  }
-  .cam-status-badge.congestion {
-    background: rgba(255,170,0,0.12);
-    border-color: rgba(255,170,0,0.4);
-    color: var(--accent-orange);
-  }
-  .cam-status-badge.accident {
-    background: rgba(255,51,85,0.15);
-    border-color: rgba(255,51,85,0.5);
-    color: var(--accent-red);
-    animation: alertFlash 1s ease-in-out infinite;
-  }
-
-  @keyframes alertFlash {
-    0%,100% { opacity: 1; }
-    50%      { opacity: 0.6; }
-  }
-
-  .cam-overlay-right {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 4px;
-  }
+  .cam-overlay-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
 
   .cam-meta-pill {
-    padding: 3px 10px;
-    border-radius: 3px;
-    background: rgba(0,0,0,0.5);
-    border: 1px solid var(--border);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    color: var(--text-muted);
-    backdrop-filter: blur(4px);
-    letter-spacing: 1px;
+    padding: 3px 10px; border-radius: 3px;
+    background: rgba(0,0,0,0.5); border: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    color: var(--text-muted); backdrop-filter: blur(4px); letter-spacing: 1px;
   }
 
-  /* Bottom overlay */
   .cam-bottom-overlay {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
+    position: absolute; bottom:0; left:0; right:0;
     padding: 12px 16px;
     background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
+    display: flex; align-items: flex-end; justify-content: space-between;
     z-index: 4;
   }
+  .cam-timestamp { font-family:'Share Tech Mono',monospace; font-size:11px; color:rgba(255,255,255,0.5); letter-spacing:1px; }
+  .cam-source    { font-family:'Share Tech Mono',monospace; font-size:10px; color:rgba(255,255,255,0.35); letter-spacing:1px; }
 
-  .cam-timestamp {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    color: rgba(255,255,255,0.5);
-    letter-spacing: 1px;
-  }
-
-  .cam-source {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    color: rgba(255,255,255,0.35);
-    letter-spacing: 1px;
-  }
-
-  /* Scan line overlay */
   .scan-overlay {
-    position: absolute;
-    left: 0; right: 0;
-    height: 2px;
+    position: absolute; left:0; right:0; height:2px;
     background: linear-gradient(90deg, transparent, rgba(0,200,255,0.4), transparent);
     animation: scanOverlay 4s linear infinite;
-    pointer-events: none;
-    z-index: 3;
+    pointer-events: none; z-index: 3;
   }
-
   @keyframes scanOverlay {
-    0%   { top: 0; opacity: 0; }
-    5%   { opacity: 1; }
-    95%  { opacity: 1; }
-    100% { top: 100%; opacity: 0; }
-  }
-
-  /* Refresh controls */
-  .cam-controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
+    0%   { top:0; opacity:0; }
+    5%   { opacity:1; }
+    95%  { opacity:1; }
+    100% { top:100%; opacity:0; }
   }
 
   .control-btn {
-    padding: 7px 14px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: rgba(0,50,100,0.2);
-    color: var(--text-muted);
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    padding: 7px 14px; border-radius: 6px;
+    border: 1px solid var(--border); background: rgba(0,50,100,0.2);
+    color: var(--text-muted); font-family: 'Rajdhani', sans-serif;
+    font-size: 12px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
   }
+  .control-btn:hover  { border-color:var(--border-bright); color:var(--text-primary); background:rgba(0,100,180,0.2); }
+  .control-btn.active { border-color:var(--blue-bright);   color:var(--blue-bright);  background:rgba(0,200,255,0.08); }
 
-  .control-btn:hover {
-    border-color: var(--border-bright);
-    color: var(--text-primary);
-    background: rgba(0,100,180,0.2);
-  }
+  .rate-label { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text-dim); letter-spacing:1px; }
 
-  .control-btn.active {
-    border-color: var(--blue-bright);
-    color: var(--blue-bright);
-    background: rgba(0,200,255,0.08);
-  }
+  .right-panel { display:flex; flex-direction:column; gap:12px; overflow-y:auto; }
 
-  /* Rate selector */
-  .rate-label {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    color: var(--text-dim);
-    letter-spacing: 1px;
-  }
-
-  /* ── RIGHT PANEL ── */
-  .right-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    overflow-y: auto;
-  }
-
-  /* Detection detail card */
   .detail-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px;
-    position: relative;
-    flex-shrink: 0;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px; position: relative; flex-shrink: 0;
   }
-
   .detail-card::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    border-radius: 10px 10px 0 0;
-    background: var(--detail-color, var(--blue-bright));
-    transition: background 0.4s;
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    border-radius:10px 10px 0 0;
+    background: var(--detail-color, var(--blue-bright)); transition:background 0.4s;
   }
 
   .detail-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(0,200,255,0.04);
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 0; border-bottom:1px solid rgba(0,200,255,0.04);
   }
+  .detail-row:last-child { border-bottom:none; }
+  .detail-key { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; }
+  .detail-val { font-family:'Rajdhani',sans-serif; font-size:15px; font-weight:600; color:var(--text-primary); text-align:right; }
 
-  .detail-row:last-child { border-bottom: none; }
-
-  .detail-key {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-  }
-
-  .detail-val {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
-    text-align: right;
-  }
-
-  /* Alert log */
   .alert-log {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    background:var(--bg-card); border:1px solid var(--border);
+    border-radius:10px; flex:1; display:flex; flex-direction:column; overflow:hidden;
   }
-
   .alert-log-header {
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
+    padding:14px 18px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
   }
-
   .alert-log-title {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:600;
+    letter-spacing:2px; color:var(--text-muted); text-transform:uppercase;
+    display:flex; align-items:center; gap:8px;
   }
-
   .alert-log-title::before {
-    content: '';
-    display: inline-block;
-    width: 3px; height: 13px;
-    background: var(--blue-bright);
-    border-radius: 2px;
+    content:''; display:inline-block; width:3px; height:13px;
+    background:var(--blue-bright); border-radius:2px;
   }
+  .alert-count { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-dim); }
 
-  .alert-count {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-  }
-
-  .alert-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px 0;
-  }
+  .alert-list { flex:1; overflow-y:auto; padding:8px 0; }
 
   .alert-entry {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px 18px;
-    border-bottom: 1px solid rgba(0,200,255,0.03);
+    display:flex; align-items:flex-start; gap:10px;
+    padding:10px 18px; border-bottom:1px solid rgba(0,200,255,0.03);
     animation: alertIn 0.3s ease;
   }
+  @keyframes alertIn { from{opacity:0;transform:translateX(10px);} to{opacity:1;transform:translateX(0);} }
+  .alert-entry:last-child { border-bottom:none; }
+  .alert-icon  { font-size:14px; flex-shrink:0; margin-top:1px; }
+  .alert-body  { flex:1; }
+  .alert-status { font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:600; }
+  .alert-status.normal     { color:var(--accent-green); }
+  .alert-status.congestion { color:var(--accent-orange); }
+  .alert-status.accident   { color:var(--accent-red); }
+  .alert-detail { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:2px; }
+  .alert-time   { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--text-dim); flex-shrink:0; margin-top:2px; }
 
-  @keyframes alertIn {
-    from { opacity:0; transform: translateX(10px); }
-    to   { opacity:1; transform: translateX(0); }
+  .vehicle-counter { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .vehicle-dot { width:10px; height:10px; border-radius:2px; background:var(--blue-mid); transition:background 0.3s; }
+  .vehicle-dot.active { background:var(--blue-bright); box-shadow:0 0 5px var(--blue-bright); }
+
+  .conf-bar-wrap { width:100%; height:4px; background:var(--bg-deep); border-radius:2px; overflow:hidden; margin-top:4px; }
+  .conf-bar-fill { height:100%; border-radius:2px; background:var(--blue-bright); transition:width 0.5s ease; }
+
+  .empty-state {
+    text-align:center; padding:20px;
+    color:var(--text-dim); font-family:'Share Tech Mono',monospace;
+    font-size:12px; letter-spacing:2px;
   }
-
-  .alert-entry:last-child { border-bottom: none; }
-
-  .alert-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
-
-  .alert-body { flex: 1; }
-
-  .alert-status {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  .alert-status.normal     { color: var(--accent-green); }
-  .alert-status.congestion { color: var(--accent-orange); }
-  .alert-status.accident   { color: var(--accent-red); }
-
-  .alert-detail {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-    margin-top: 2px;
-    letter-spacing: 0.5px;
-  }
-
-  .alert-time {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 9px;
-    color: var(--text-dim);
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-
-  /* Mini vehicle counter */
-  .vehicle-counter {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-top: 10px;
-  }
-
-  .vehicle-dot {
-    width: 10px; height: 10px;
-    border-radius: 2px;
-    background: var(--blue-mid);
-    transition: background 0.3s;
-  }
-
-  .vehicle-dot.active {
-    background: var(--blue-bright);
-    box-shadow: 0 0 5px var(--blue-bright);
-  }
-
-  /* Confidence bar */
-  .conf-bar-wrap {
-    width: 100%;
-    height: 4px;
-    background: var(--bg-deep);
-    border-radius: 2px;
-    overflow: hidden;
-    margin-top: 4px;
-  }
-
-  .conf-bar-fill {
-    height: 100%;
-    border-radius: 2px;
-    background: var(--blue-bright);
-    transition: width 0.5s ease;
-  }
-
 </style>
 </head>
 <body>
@@ -434,13 +201,10 @@
   <header class="header" id="header"></header>
 
   <main class="main-content fade-in" style="padding:16px;">
-
     <div class="monitor-layout">
 
-      <!-- ── LEFT: CAMERA ── -->
+      <!-- ── CAMERA ── -->
       <div class="camera-panel">
-
-        <!-- Camera frame -->
         <div class="camera-frame" id="cameraFrame">
           <div class="hud-corner hud-tl"></div>
           <div class="hud-corner hud-tr"></div>
@@ -448,60 +212,46 @@
           <div class="hud-corner hud-br"></div>
           <div class="scan-overlay"></div>
 
-          <!-- Top overlay -->
           <div class="cam-overlay">
-            <div class="cam-status-badge normal" id="camStatusBadge">
-              ● NORMAL
-            </div>
+            <div class="cam-status-badge normal" id="camStatusBadge">● NORMAL</div>
             <div class="cam-overlay-right">
               <div class="cam-meta-pill" id="camVehiclePill">VEHICLES: 0</div>
               <div class="cam-meta-pill" id="camConfPill">CONF: 0%</div>
-              <div class="cam-meta-pill" id="camFpsPill">LIVE</div>
+              <div class="cam-meta-pill" id="camFpsPill">LIVE ~12FPS</div>
             </div>
           </div>
 
-          <!-- Feed -->
-          <img
-            id="camFeed"
-            class="cam-feed"
+          <img id="camFeed" class="cam-feed"
             src="http://192.168.8.122/capture"
             alt="ESP32-CAM Feed"
             onerror="showOffline()"
             onload="showOnline()"
           />
 
-          <!-- Offline state (hidden by default) -->
           <div class="cam-offline" id="camOffline" style="display:none;">
             <div class="cam-offline-icon">📷</div>
             <div>CAMERA OFFLINE</div>
             <div style="font-size:10px; margin-top:4px; color:var(--text-dim);">
-              http://192.168.8.122/stream
+              http://192.168.8.122/capture
             </div>
             <button class="control-btn" onclick="reconnectCamera()" style="margin-top:8px;">
               ↺ RECONNECT
             </button>
           </div>
 
-          <!-- Bottom overlay -->
           <div class="cam-bottom-overlay">
             <div class="cam-timestamp" id="camTimestamp">--:--:--</div>
             <div class="cam-source">SRC: 192.168.8.122 · ESP32-CAM</div>
           </div>
         </div>
 
-        <!-- Controls bar -->
+        <!-- Controls -->
         <div class="detail-card" style="padding:12px 18px;">
           <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-
             <div style="display:flex; align-items:center; gap:10px;">
-              <button class="control-btn active" id="btnStream" onclick="setMode('stream')">
-                📡 STREAM
-              </button>
-              <button class="control-btn" id="btnSnapshot" onclick="setMode('snapshot')">
-                📸 SNAPSHOT
-              </button>
+              <button class="control-btn active" id="btnStream"   onclick="setMode('stream')">📡 STREAM</button>
+              <button class="control-btn"         id="btnSnapshot" onclick="setMode('snapshot')">📸 SNAPSHOT</button>
             </div>
-
             <div style="display:flex; align-items:center; gap:12px;">
               <span class="rate-label">REFRESH:</span>
               <select class="input" id="refreshRate" onchange="setRefreshRate(this.value)"
@@ -510,23 +260,17 @@
                 <option value="5000" selected>5s</option>
                 <option value="10000">10s</option>
               </select>
-              <button class="control-btn" onclick="takeSnapshot()">
-                💾 CAPTURE
-              </button>
+              <button class="control-btn" onclick="takeSnapshot()">💾 CAPTURE</button>
             </div>
-
           </div>
         </div>
-
       </div>
 
-      <!-- ── RIGHT: PANEL ── -->
+      <!-- ── RIGHT PANEL ── -->
       <div class="right-panel">
 
-        <!-- Detection Details -->
         <div class="detail-card" id="detailCard">
           <div class="card-title">Detection Details</div>
-
           <div class="detail-row">
             <span class="detail-key">STATUS</span>
             <span class="detail-val" id="detStatus">—</span>
@@ -552,30 +296,24 @@
             <span class="detail-key">UPDATED</span>
             <span class="detail-val" id="detTime" style="font-size:12px;">—</span>
           </div>
-
-          <!-- Vehicle dot grid -->
           <div style="margin-top:12px;">
             <div class="detail-key" style="margin-bottom:6px;">VEHICLE GRID</div>
             <div class="vehicle-counter" id="vehicleGrid"></div>
           </div>
         </div>
 
-        <!-- Alert Log -->
         <div class="alert-log">
           <div class="alert-log-header">
             <div class="alert-log-title">Alert Log</div>
             <div class="alert-count" id="alertCount">0 events</div>
           </div>
           <div class="alert-list" id="alertList">
-            <div class="empty-state" style="padding:20px;">
-              WAITING FOR EVENTS...
-            </div>
+            <div class="empty-state">WAITING FOR EVENTS...</div>
           </div>
         </div>
 
       </div>
     </div>
-
   </main>
 
   <footer class="footer" id="footer"></footer>
@@ -585,17 +323,15 @@
 <script>
   initPage("live", "Live Monitor", "// MONITOR / LIVE FEED");
 
-  const ESP32_STREAM  = "http://192.168.8.122/stream";
   const ESP32_CAPTURE = "http://192.168.8.122/capture";
 
-  let mode           = "stream";
-  let refreshTimer   = null;
-  let refreshRate    = 5000;
-  let alertLog       = [];
-  let lastStatus     = null;
-  let snapshotCount  = 0;
+  let mode         = "stream";
+  let refreshTimer = null;
+  let refreshRate  = 5000;
+  let alertLog     = [];
+  let lastStatus   = null;
 
-  // ── CAMERA ONLINE/OFFLINE ────────────────
+  // ── CAMERA STATE ─────────────────────────
   function showOnline() {
     document.getElementById("camFeed").style.display    = "block";
     document.getElementById("camOffline").style.display = "none";
@@ -607,18 +343,14 @@
   }
 
   function reconnectCamera() {
-    const feed = document.getElementById("camFeed");
-    feed.src = ESP32_STREAM + "?t=" + Date.now();
-    showOnline();
+    setMode(mode);
   }
 
-  // ── TIMESTAMP ────────────────────────────
-  function updateTimestamp() {
+  // ── CLOCK ────────────────────────────────
+  setInterval(() => {
     const el = document.getElementById("camTimestamp");
-    if (el) el.textContent = new Date().toTimeString().slice(0,8);
-  }
-  setInterval(updateTimestamp, 1000);
-  updateTimestamp();
+    if (el) el.textContent = new Date().toTimeString().slice(0, 8);
+  }, 1000);
 
   // ── MODE SWITCH ──────────────────────────
   function setMode(m) {
@@ -626,7 +358,6 @@
     document.getElementById("btnStream").classList.toggle("active",   m === "stream");
     document.getElementById("btnSnapshot").classList.toggle("active", m === "snapshot");
 
-    // Clear any existing timers
     clearInterval(refreshTimer);
     clearTimeout(refreshTimer);
     refreshTimer = null;
@@ -634,15 +365,17 @@
     const feed = document.getElementById("camFeed");
 
     if (m === "stream") {
-      // Simulate live video: chain requests as fast as ESP32 can respond (~10-15 fps)
+      // Chain requests to simulate live video (~12fps)
       function fetchNext() {
-        const img = new Image();
+        const img  = new Image();
         img.onload = () => {
           feed.src = img.src;
+          showOnline();
           if (mode === "stream") refreshTimer = setTimeout(fetchNext, 80);
         };
         img.onerror = () => {
-          if (mode === "stream") refreshTimer = setTimeout(fetchNext, 500);
+          showOffline();
+          if (mode === "stream") refreshTimer = setTimeout(fetchNext, 1000);
         };
         img.src = ESP32_CAPTURE + "?t=" + Date.now();
       }
@@ -662,63 +395,63 @@
     if (mode === "snapshot") {
       clearInterval(refreshTimer);
       refreshTimer = setInterval(() => {
-        document.getElementById("camFeed").src =
-          ESP32_CAPTURE + "?t=" + Date.now();
+        document.getElementById("camFeed").src = ESP32_CAPTURE + "?t=" + Date.now();
       }, refreshRate);
     }
   }
 
-  // ── SNAPSHOT ─────────────────────────────
+  // ── SNAPSHOT SAVE ─────────────────────────
   function takeSnapshot() {
-    const feed = document.getElementById("camFeed");
+    const feed   = document.getElementById("camFeed");
     const canvas = document.createElement("canvas");
     canvas.width  = feed.naturalWidth  || 640;
     canvas.height = feed.naturalHeight || 480;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(feed, 0, 0);
-    const link = document.createElement("a");
+    canvas.getContext("2d").drawImage(feed, 0, 0);
+    const link    = document.createElement("a");
     link.href     = canvas.toDataURL("image/jpeg", 0.95);
     link.download = `capture_${new Date().toISOString().slice(0,19).replace(/:/g,"-")}.jpg`;
     link.click();
     showToast("📸 Snapshot saved!", "success");
   }
 
-  // ── UPDATE DETECTION UI ──────────────────
+  // ─────────────────────────────────────────
+  //  ★ UPDATE DETECTION UI
+  //  Called by startStatusPoll every 5s
+  // ─────────────────────────────────────────
   function updateDetectionUI(data) {
     if (!data) return;
 
-    const status    = data.status || "NORMAL";
-    const vehicles  = data.vehicle_count ?? 0;
-    const cls       = data.accident_class || "none";
-    const conf      = data.confidence ?? 0;
-    const confPct   = Math.round(conf * 100);
-    const color     = getStatusColor(status);
+    const status   = data.status || "NORMAL";
+    const vehicles = data.vehicle_count ?? 0;
+    const cls      = data.accident_class || "none";
+    const conf     = data.confidence ?? 0;
+    const confPct  = Math.round(conf * 100);
+    const color    = getStatusColor(status);
     const statusCls = getStatusClass(status);
 
-    // Status badge on camera
+    // Camera badge
     const badge = document.getElementById("camStatusBadge");
-    badge.className  = `cam-status-badge ${statusCls}`;
+    badge.className   = `cam-status-badge ${statusCls}`;
     badge.textContent = `● ${status}`;
 
-    // Camera meta pills
+    // Pills
     document.getElementById("camVehiclePill").textContent = `VEHICLES: ${vehicles}`;
     document.getElementById("camConfPill").textContent    = `CONF: ${confPct}%`;
 
     // Detail card
-    document.getElementById("detStatus").textContent   = status;
-    document.getElementById("detStatus").style.color   = color;
-    document.getElementById("detVehicles").textContent = vehicles;
-    document.getElementById("detClass").textContent    = cls.toUpperCase();
-    document.getElementById("detConf").textContent     = `${confPct}%`;
-    document.getElementById("detConfBar").style.width  = `${confPct}%`;
+    document.getElementById("detStatus").textContent      = status;
+    document.getElementById("detStatus").style.color      = color;
+    document.getElementById("detVehicles").textContent    = vehicles;
+    document.getElementById("detClass").textContent       = cls.toUpperCase();
+    document.getElementById("detConf").textContent        = `${confPct}%`;
+    document.getElementById("detConfBar").style.width     = `${confPct}%`;
     document.getElementById("detConfBar").style.background = color;
-    document.getElementById("detTime").textContent =
+    document.getElementById("detTime").textContent        =
       data.timestamp ? timeAgo(data.timestamp) : "Just now";
+    document.getElementById("detailCard")
+      .style.setProperty("--detail-color", color);
 
-    // Detail card top border color
-    document.getElementById("detailCard").style.setProperty("--detail-color", color);
-
-    // Vehicle dot grid (max 20 dots)
+    // Vehicle dot grid
     const grid = document.getElementById("vehicleGrid");
     grid.innerHTML = "";
     for (let i = 0; i < 20; i++) {
@@ -727,7 +460,7 @@
       grid.appendChild(dot);
     }
 
-    // Add to alert log if status changed
+    // Alert log on status change
     if (status !== lastStatus) {
       addAlert(status, vehicles, confPct);
       lastStatus = status;
@@ -739,11 +472,12 @@
     const statusCls = getStatusClass(status);
     const icon = statusCls === "accident"   ? "🚨" :
                  statusCls === "congestion" ? "🚦" : "✅";
-    const ts = new Date().toTimeString().slice(0,8);
-
-    alertLog.unshift({ status, vehicles, confPct, icon, ts, statusCls });
+    alertLog.unshift({
+      status, vehicles, confPct, icon,
+      ts: new Date().toTimeString().slice(0, 8),
+      statusCls
+    });
     if (alertLog.length > 50) alertLog.pop();
-
     renderAlerts();
   }
 
@@ -752,8 +486,8 @@
     document.getElementById("alertCount").textContent =
       `${alertLog.length} event${alertLog.length !== 1 ? "s" : ""}`;
 
-    if (alertLog.length === 0) {
-      list.innerHTML = `<div class="empty-state" style="padding:20px;">WAITING FOR EVENTS...</div>`;
+    if (!alertLog.length) {
+      list.innerHTML = `<div class="empty-state">WAITING FOR EVENTS...</div>`;
       return;
     }
 
@@ -762,9 +496,7 @@
         <div class="alert-icon">${a.icon}</div>
         <div class="alert-body">
           <div class="alert-status ${a.statusCls}">${a.status}</div>
-          <div class="alert-detail">
-            Vehicles: ${a.vehicles} &nbsp;·&nbsp; Conf: ${a.confPct}%
-          </div>
+          <div class="alert-detail">Vehicles: ${a.vehicles} · Conf: ${a.confPct}%</div>
         </div>
         <div class="alert-time">${a.ts}</div>
       </div>
@@ -773,10 +505,11 @@
 
   // ── BOOT ─────────────────────────────────
   setMode("stream"); // start live feed immediately
+
+  // ★ Poll API every 5s → updateDetectionUI keeps detection panel fresh
   startStatusPoll((data) => {
     updateDetectionUI(data);
   });
-
 </script>
 </body>
 </html>
