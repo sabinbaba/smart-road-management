@@ -531,6 +531,28 @@
 
             <div class="setting-row">
               <div class="setting-info">
+                <div class="setting-name">Camera Latitude</div>
+                <div class="setting-desc">GPS latitude for the camera location map.</div>
+              </div>
+              <div class="setting-control">
+                <input class="input" id="camLat" value="-1.943584"
+                  style="width:160px; font-family:'Share Tech Mono',monospace; font-size:12px;"/>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-name">Camera Longitude</div>
+                <div class="setting-desc">GPS longitude for the camera location map.</div>
+              </div>
+              <div class="setting-control">
+                <input class="input" id="camLng" value="30.034045"
+                  style="width:160px; font-family:'Share Tech Mono',monospace; font-size:12px;"/>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
                 <div class="setting-name">Stream Mode</div>
                 <div class="setting-desc">
                   MJPEG stream is continuous. Snapshot polls the camera every N seconds.
@@ -824,6 +846,8 @@
   function saveCamera() {
     const settings = {
       cam_ip:      document.getElementById("camIP").value,
+      camera_lat:  document.getElementById("camLat").value,
+      camera_lng:  document.getElementById("camLng").value,
       stream_mode: document.getElementById("streamMode").value,
       frame_skip:  document.getElementById("frameSkip").value,
       save_every:  document.getElementById("saveEvery").value,
@@ -943,6 +967,8 @@
     if (cam) {
       const s = JSON.parse(cam);
       if (s.cam_ip)      document.getElementById("camIP").value       = s.cam_ip;
+      if (s.camera_lat)  document.getElementById("camLat").value     = s.camera_lat;
+      if (s.camera_lng)  document.getElementById("camLng").value     = s.camera_lng;
       if (s.stream_mode) document.getElementById("streamMode").value  = s.stream_mode;
       if (s.frame_skip)  document.getElementById("frameSkip").value   = s.frame_skip;
       if (s.save_every)  document.getElementById("saveEvery").value   = s.save_every;

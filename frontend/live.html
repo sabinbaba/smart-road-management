@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-o9N1jE8YpVdF8B2mO7VCz8XD4vVx8+7aP+JwY2R3rRo=" crossorigin="" />
 <style>
   .monitor-layout {
     display: grid;
@@ -186,6 +187,23 @@
   .conf-bar-wrap { width:100%; height:4px; background:var(--bg-deep); border-radius:2px; overflow:hidden; margin-top:4px; }
   .conf-bar-fill { height:100%; border-radius:2px; background:var(--blue-bright); transition:width 0.5s ease; }
 
+  .camera-map {
+    width: 100%;
+    height: 240px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: #e6f7ff;
+  }
+
+  .camera-location-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 10px;
+    text-align: center;
+  }
+
   .empty-state {
     text-align:center; padding:20px;
     color:var(--text-dim); font-family:'Share Tech Mono',monospace;
@@ -302,6 +320,15 @@
           </div>
         </div>
 
+        <div class="detail-card">
+          <div class="card-title">Camera Location</div>
+          <div id="cameraMap" class="camera-map"></div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; flex-wrap:wrap;">
+            <div class="camera-location-label" id="cameraLocationLabel">Lat 0.00000 · Lng 0.00000</div>
+            <button class="btn btn-outline" onclick="refreshCameraMap()">Refresh Map</button>
+          </div>
+        </div>
+
         <div class="alert-log">
           <div class="alert-log-header">
             <div class="alert-log-title">Alert Log</div>
@@ -319,9 +346,11 @@
   <footer class="footer" id="footer"></footer>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-QVtS2PiK4kKqBRXo8vGStKItqN8x3l1rCQNOGfNHmMo=" crossorigin=""></script>
 <script src="js/shared.js"></script>
 <script>
   initPage("live", "Live Monitor", "// MONITOR / LIVE FEED");
+  initCameraMap();
 
   const ESP32_CAPTURE = "http://192.168.8.122/capture";
 
@@ -330,6 +359,79 @@
   let refreshRate  = 5000;
   let alertLog     = [];
   let lastStatus   = null;
+  let cameraMap    = null;
+  let cameraMarker = null;
+  const DEFAULT_CAMERA_LOCATION = { lat: -1.943584, lng: 30.034045 };
+  let cameraLocation = { ...DEFAULT_CAMERA_LOCATION };
+
+  function loadCameraLocation() {
+    const stored = localStorage.getItem("cameraSettings");
+    if (!stored) return;
+    try {
+      const settings = JSON.parse(stored);
+      if (settings.camera_lat && settings.camera_lng) {
+        const lat = parseFloat(settings.camera_lat);
+        const lng = parseFloat(settings.camera_lng);
+        if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+          cameraLocation = { lat, lng };
+        }
+      }
+    } catch (err) {
+      console.warn("Unable to parse camera location settings", err);
+    }
+  }
+
+  function updateCameraLocationLabel() {
+    const labelEl = document.getElementById("cameraLocationLabel");
+    if (!labelEl) return;
+    labelEl.textContent = `Lat ${cameraLocation.lat.toFixed(5)} · Lng ${cameraLocation.lng.toFixed(5)}`;
+  }
+
+  function initCameraMap() {
+    const mapEl = document.getElementById("cameraMap");
+    if (!mapEl || typeof L === "undefined") return;
+    loadCameraLocation();
+    cameraMap = L.map(mapEl, { scrollWheelZoom: false, zoomControl: false }).setView(
+      [cameraLocation.lat, cameraLocation.lng], 16
+    );
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(cameraMap);
+
+    cameraMarker = L.marker([cameraLocation.lat, cameraLocation.lng])
+      .addTo(cameraMap)
+      .bindPopup("Camera location")
+      .openPopup();
+
+    updateCameraLocationLabel();
+  }
+
+  function refreshCameraMap() {
+    loadCameraLocation();
+    if (!cameraMap) {
+      initCameraMap();
+      return;
+    }
+
+    cameraMap.setView([cameraLocation.lat, cameraLocation.lng], 16);
+    if (cameraMarker) {
+      cameraMarker.setLatLng([cameraLocation.lat, cameraLocation.lng]);
+      cameraMarker.bindPopup("Camera location").openPopup();
+    } else {
+      cameraMarker = L.marker([cameraLocation.lat, cameraLocation.lng])
+        .addTo(cameraMap)
+        .bindPopup("Camera location")
+        .openPopup();
+    }
+    updateCameraLocationLabel();
+  }
+
+  window.addEventListener("storage", (event) => {
+    if (event.key === "cameraSettings") {
+      refreshCameraMap();
+    }
+  });
 
   // ── CAMERA STATE ─────────────────────────
   function showOnline() {
