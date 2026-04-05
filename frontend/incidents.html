@@ -461,7 +461,9 @@
 
 <script src="js/shared.js"></script>
 <script>
-  initPage("incidents", "Incidents", "// INCIDENTS / LOG");
+  document.addEventListener("DOMContentLoaded", () => {
+    initPage("incidents", "Incidents", "// INCIDENTS / LOG");
+  });
 
   // ── STATE ────────────────────────────────
   let currentPage   = 1;

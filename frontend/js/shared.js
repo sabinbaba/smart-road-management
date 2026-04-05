@@ -404,4 +404,20 @@ function initPage(pageId, pageTitle, breadcrumb) {
   injectHeader(pageTitle, breadcrumb);
   injectSidebar(pageId);
   injectFooter();
+
+  setTimeout(() => {
+    const sidebar = document.getElementById("sidebar");
+    const header = document.getElementById("header");
+    const footer = document.getElementById("footer");
+
+    if (sidebar && sidebar.children.length === 0) {
+      injectSidebar(pageId);
+    }
+    if (header && header.children.length === 0) {
+      injectHeader(pageTitle, breadcrumb);
+    }
+    if (footer && footer.children.length === 0) {
+      injectFooter();
+    }
+  }, 50);
 }
