@@ -340,6 +340,11 @@ def download_csv(
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
+@app.delete("/api/detections/today")
+def clear_today_detections():
+    deleted = db.clear_today_detections()
+    return {"deleted": deleted}
+
 @app.get("/api/report/summary")
 def get_report_summary(days: int = Query(7, ge=1, le=30)):
     return {

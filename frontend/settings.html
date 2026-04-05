@@ -770,8 +770,6 @@
 <script>
   initPage("settings", "Settings", "// SETTINGS / CONFIG");
 
-  const API_BASE = "http://localhost:8000";
-
   // ── LOAD USER INFO ────────────────────────
   function loadUserInfo() {
     const username = getUsername();
@@ -885,12 +883,25 @@
   }
 
   // ── DANGER ACTIONS ────────────────────────
-  function confirmClearToday() {
+  async function confirmClearToday() {
     const confirmed = confirm(
       "⚠ Are you sure you want to clear TODAY's detection records?\nThis cannot be undone."
     );
-    if (confirmed) {
-      showToast("⚠ This feature requires a backend DELETE endpoint.", "info");
+    if (!confirmed) return;
+
+    showToast("⚠ Clearing today's records...", "info");
+    try {
+      const res = await fetch(`${API_BASE}/api/detections/today`, {
+        method: "DELETE",
+        headers: authHeaders()
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      const data = await res.json();
+      showToast(`✓ Cleared ${data.deleted || 0} records from today.`, "success");
+      checkAllStatus();
+    } catch (err) {
+      console.error(err);
+      showToast("✖ Unable to clear today's records.", "error");
     }
   }
 

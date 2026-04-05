@@ -3357,17 +3357,8 @@
 #==================================end of version 1.4 with backend==================================
 
 """
-vehicle_detector.py — YOLO11 + ESP32-CAM + FastAPI SSE
-v3.0: Two-speed push
-  - Every processed frame  → POST /api/detections (triggers SSE push instantly)
-  - Every 30 frames        → saved permanently to SQLite
-
-Fix v1.1: No vehicles = forced NORMAL
-Fix v1.2: Priority logic — congestion vs accident conflict resolved
-v1.3    : ESP32-CAM stream
-v1.4    : Fixed stream URL
-v2.0    : Backend API integration
-v3.0    : Real-time SSE push — frontend updates instantly
+vehicle_detector.py — YOLO11 + ESP32-CAM + FastAPI backend
+v2.1: Faster saves + immediate save on status change
 """
 
 import cv2
@@ -3378,11 +3369,11 @@ import time
 import requests
 import urllib.request
 from pathlib import Path
-import threading
 
 # ─────────────────────────────────────────────
 #  CONFIGURATION
 # ─────────────────────────────────────────────
+
 ESP32_STREAM_URL  = "http://192.168.8.122/capture"
 RECONNECT_DELAY   = 2
 
@@ -3391,8 +3382,7 @@ API_DETECTION_URL = f"{API_BASE_URL}/api/detections"
 
 CONGESTION_THRESHOLD   = 6
 FRAME_SKIP             = 2
-SAVE_TO_DB_EVERY       = 30    # save to SQLite every N frames
-PUSH_TO_SSE_EVERY      = 2     # push to SSE every N processed frames (near real-time)
+SAVE_EVERY_N_FRAMES    = 5    # ← was 30, now saves much more frequently
 
 ACCIDENT_CONF_MIN      = 0.60
 ACCIDENT_CONF_OVERRIDE = 0.75
@@ -3425,22 +3415,7 @@ def get_frame(url):
 # ─────────────────────────────────────────────
 #  BACKEND API
 # ─────────────────────────────────────────────
-_last_pushed_status = None  # avoid spamming identical events
-
-def send_to_backend(status, vehicle_count, accident_class, confidence, force_save=False):
-    """
-    POST detection to backend.
-    Backend saves to SQLite and pushes SSE to all frontend clients instantly.
-
-    force_save=True  → always save (every 30 frames)
-    force_save=False → only push if status changed (real-time updates)
-    """
-    global _last_pushed_status
-
-    # Skip if nothing changed and not a forced save
-    if not force_save and status == _last_pushed_status:
-        return True
-
+def send_detection(status, vehicle_count, accident_class, confidence):
     try:
         response = requests.post(
             API_DETECTION_URL,
@@ -3448,27 +3423,17 @@ def send_to_backend(status, vehicle_count, accident_class, confidence, force_sav
                 "status"         : status,
                 "vehicle_count"  : vehicle_count,
                 "accident_class" : accident_class,
-                "confidence"     : round(confidence, 4),
+                "confidence"     : round(confidence, 4)
             },
-            timeout=1  # short timeout — don't block the detection loop
+            timeout=2
         )
-        if response.status_code == 200:
-            _last_pushed_status = status
-            return True
-        return False
+        return response.status_code == 200
     except requests.exceptions.ConnectionError:
+        print("[API] ❌ Backend not reachable.")
         return False
-    except Exception:
+    except Exception as e:
+        print(f"[API] ❌ Error: {e}")
         return False
-
-def send_async(status, vehicle_count, accident_class, confidence, force_save=False):
-    """Send in background thread so it never blocks the detector loop."""
-    t = threading.Thread(
-        target=send_to_backend,
-        args=(status, vehicle_count, accident_class, confidence, force_save),
-        daemon=True
-    )
-    t.start()
 
 def check_backend():
     try:
@@ -3498,7 +3463,7 @@ def analyze_scene(vehicle_boxes, accident_results):
                 acc_confidence = conf
                 accident_class = cls_name
 
-    is_accident = (
+    is_accident   = (
         accident_class in ["Moderate", "Severe"]
         and acc_confidence >= ACCIDENT_CONF_MIN
         and count <= ACCIDENT_MAX_VEHICLES
@@ -3536,49 +3501,37 @@ def draw_label(img, text, pos, color):
 def draw_banner(frame, status, count, acc_class, conf, fps, api_ok):
     h, w = frame.shape[:2]
     color = get_color(status)
-
-    cv2.rectangle(frame, (0, 0), (w, 70), (15, 15, 15), -1)
-    cv2.putText(frame, status, (20, 45),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
-
+    cv2.rectangle(frame, (0, 0), (w, 70), (20, 20, 20), -1)
+    cv2.putText(frame, status, (20, 45), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
     stats = f"Vehicles: {count} | Conf: {conf:.0%} | FPS: {fps:.1f}"
-    cv2.putText(frame, stats, (w - 350, 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
-
-    # API / SSE status
-    api_color = (0, 200, 0) if api_ok else (0, 0, 220)
-    api_label = "SSE: LIVE" if api_ok else "API: OFFLINE"
-    cv2.putText(frame, api_label, (w - 350, 55),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, api_color, 1)
-
+    cv2.putText(frame, stats, (w-350, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200,200,200), 1)
+    api_color = (0,200,0) if api_ok else (0,0,220)
+    cv2.putText(frame, "API: ONLINE" if api_ok else "API: OFFLINE",
+                (w-350, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, api_color, 1)
     ts = datetime.now().strftime("%Y-%m-%d  %H:%M:%S")
-    cv2.putText(frame, ts, (10, h - 10),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.45, (150, 150, 150), 1)
+    cv2.putText(frame, ts, (10, h-10), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (150,150,150), 1)
 
 def draw_boxes(frame, detections, status):
     color = get_color(status)
     for (x1, y1, x2, y2), label, conf in detections:
-        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-        draw_label(frame, f"{label} {conf:.0%}", (x1, y1 - 2), color)
+        cv2.rectangle(frame, (x1,y1), (x2,y2), color, 2)
+        draw_label(frame, f"{label} {conf:.0%}", (x1, y1-2), color)
 
 # ─────────────────────────────────────────────
 #  MAIN
 # ─────────────────────────────────────────────
 def main():
     print("=" * 55)
-    print("  Vehicle + Accident Detection — YOLO11 v3.0")
-    print("  Input  : ESP32-CAM")
-    print("  Output : FastAPI SSE → Frontend (real-time)")
+    print("  Vehicle + Accident Detection — YOLO11 v2.1")
+    print("  Input  : ESP32-CAM Snapshot")
+    print("  Output : FastAPI Backend → SQLite")
     print("=" * 55)
 
     print(f"\n[INFO] Checking backend at {API_BASE_URL}...")
     api_ok = check_backend()
-    if api_ok:
-        print("[INFO] ✅ Backend online — SSE push enabled!")
-    else:
-        print("[WARN] ⚠️  Backend offline — start with: uvicorn main:app --reload")
+    print("[INFO] ✅ Backend online!" if api_ok else "[WARN] ⚠️  Backend offline!")
 
-    print("\n[INFO] Loading vehicle model...")
+    print("\n[INFO] Loading vehicle detection model...")
     vehicle_model = YOLO(VEHICLE_MODEL_PATH)
 
     accident_model = None
@@ -3587,22 +3540,21 @@ def main():
         accident_model = YOLO(ACCIDENT_MODEL_PATH)
         print("[INFO] ✅ Accident model loaded!")
     else:
-        print("[WARN] ⚠️  Accident model not found. Vehicle detection only.")
+        print(f"[WARN] ⚠️  Accident model not found at: {ACCIDENT_MODEL_PATH}")
 
-    print(f"\n[INFO] ESP32-CAM   : {ESP32_STREAM_URL}")
-    print(f"[INFO] Backend API : {API_BASE_URL}")
-    print(f"[INFO] SSE push    : every status change + every {SAVE_TO_DB_EVERY} frames to DB")
+    print(f"\n[INFO] ESP32-CAM  : {ESP32_STREAM_URL}")
+    print(f"[INFO] Backend API: {API_BASE_URL}")
     print("[INFO] Press Q to quit.\n")
 
-    frame_idx    = 0
-    processed    = 0     # counts only processed frames
-    fps          = 0.0
-    t_prev       = datetime.now()
-    last_status  = "NORMAL"
-    detections   = []
-    count        = 0
-    acc_class    = "none"
-    acc_conf     = 0.0
+    frame_idx   = 0
+    fps         = 0.0
+    t_prev      = datetime.now()
+    last_status = "NORMAL"  # track previous status to detect changes
+    detections  = []
+    count       = 0
+    acc_class   = "none"
+    acc_conf    = 0.0
+    current_status = "NORMAL"
 
     while True:
         ret, frame = get_frame(ESP32_STREAM_URL)
@@ -3613,14 +3565,13 @@ def main():
             continue
 
         frame_idx += 1
-        now     = datetime.now()
-        fps     = 1.0 / ((now - t_prev).total_seconds() + 1e-5)
-        t_prev  = now
+        now    = datetime.now()
+        fps    = 1.0 / ((now - t_prev).total_seconds() + 1e-5)
+        t_prev = now
 
         if frame_idx % FRAME_SKIP == 0:
-            processed += 1
 
-            # ── Vehicle detection ────────────
+            # Vehicle detection
             v_results  = vehicle_model(frame, verbose=False)[0]
             detections = []
             boxes_raw  = []
@@ -3634,42 +3585,37 @@ def main():
                     continue
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
                 detections.append(((x1,y1,x2,y2), VEHICLE_CLASSES[cls_id], conf))
-                boxes_raw.append([x1, y1, x2, y2])
+                boxes_raw.append([x1,y1,x2,y2])
 
-            # ── Accident model ───────────────
+            # Accident detection
             acc_results = accident_model(frame, verbose=False) if accident_model else None
 
-            # ── Scene analysis ───────────────
-            last_status, acc_class, acc_conf, count = analyze_scene(boxes_raw, acc_results)
+            # Scene analysis
+            current_status, acc_class, acc_conf, count = analyze_scene(boxes_raw, acc_results)
 
-            # ── Push to backend ──────────────
-            # Every SAVE_TO_DB_EVERY frames → force save to SQLite (always)
-            force_save = (processed % SAVE_TO_DB_EVERY == 0)
+            # ── SAVE LOGIC ───────────────────────────────────────
+            # 1. Always save every N frames (heartbeat)
+            # 2. Save IMMEDIATELY when status changes (accident/congestion)
+            status_changed = current_status != last_status
+            periodic_save  = frame_idx % SAVE_EVERY_N_FRAMES == 0
 
-            # Every PUSH_TO_SSE_EVERY frames OR on status change → push SSE
-            should_push = (
-                force_save or
-                processed % PUSH_TO_SSE_EVERY == 0 or
-                last_status != _last_pushed_status
-            )
+            if status_changed or periodic_save:
+                api_ok = send_detection(current_status, count, acc_class, acc_conf)
+                ts     = datetime.now().strftime("%H:%M:%S")
+                reason = "⚡ STATUS CHANGE" if status_changed else "💾 periodic"
+                icons  = {"NORMAL": "✅", "CONGESTION": "🚦"}
+                icon   = icons.get(current_status, "🚨")
+                saved  = "saved" if api_ok else "❌ not saved"
+                print(f"[{ts}] {icon} {current_status} | Vehicles: {count} "
+                      f"| Conf: {acc_conf:.0%} | {reason} | {saved}")
 
-            if should_push:
-                send_async(last_status, count, acc_class, acc_conf, force_save=force_save)
+                last_status = current_status
 
-            # ── Console log on status change ──
-            if force_save:
-                ts    = datetime.now().strftime("%H:%M:%S")
-                icons = {"NORMAL": "✅", "CONGESTION": "🚦"}
-                icon  = icons.get(last_status, "🚨")
-                print(f"[{ts}] {icon} {last_status} | "
-                      f"Vehicles: {count} | Conf: {acc_conf:.0%} | "
-                      f"{'💾 saved' if api_ok else '❌ offline'}")
+        # Draw
+        draw_boxes(frame, detections, current_status)
+        draw_banner(frame, current_status, count, acc_class, acc_conf, fps, api_ok)
 
-        # ── Draw ─────────────────────────────
-        draw_boxes(frame, detections, last_status)
-        draw_banner(frame, last_status, count, acc_class, acc_conf, fps, api_ok)
-
-        cv2.imshow("Smart Traffic Detection v3.0  (Q to quit)", frame)
+        cv2.imshow("Vehicle + Accident Detection v2.1  (Q to quit)", frame)
 
         if cv2.waitKey(1) == ord("q"):
             print("\n[INFO] Quit by user.")

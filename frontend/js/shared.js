@@ -1,7 +1,6 @@
 /**
  * shared.js — Smart Traffic Detection System
- * v3.0 — Uses SSE (Server-Sent Events) for real-time updates
- *         Frontend receives data instantly when detector pushes it
+ * v3.0 — SSE (Server-Sent Events) for real-time updates
  */
 
 const API_BASE = "http://localhost:8000";
@@ -21,11 +20,22 @@ function authHeaders() {
 }
 
 function requireAuth() {
-  if (!getToken()) window.location.href = "login.html";
+  if (!getToken()) {
+    var redirectCount = parseInt(sessionStorage.getItem("_authRedirects") || "0");
+    if (redirectCount >= 2) {
+      sessionStorage.removeItem("_authRedirects");
+      return;
+    }
+    sessionStorage.setItem("_authRedirects", redirectCount + 1);
+    window.location.href = "login.html";
+    return;
+  }
+  sessionStorage.removeItem("_authRedirects");
 }
 
 function logout() {
   localStorage.clear();
+  sessionStorage.clear();
   window.location.href = "login.html";
 }
 
@@ -36,7 +46,7 @@ function isActive(page) {
 }
 
 // ─────────────────────────────────────────────
-//  API FETCH (for non-realtime data)
+//  API FETCH
 // ─────────────────────────────────────────────
 async function apiFetch(endpoint, options = {}) {
   try {
@@ -56,6 +66,13 @@ async function apiFetch(endpoint, options = {}) {
 // ─────────────────────────────────────────────
 //  STATUS HELPERS
 // ─────────────────────────────────────────────
+function normalizeStatus(status) {
+  const s = (status || "NORMAL").toString().toUpperCase();
+  if (s.includes("ACCIDENT"))   return "ACCIDENT";
+  if (s.includes("CONGESTION")) return "CONGESTION";
+  return "NORMAL";
+}
+
 function getStatusClass(status) {
   if (!status) return "normal";
   const s = status.toUpperCase();
@@ -76,36 +93,24 @@ function statusBadge(status) {
 }
 
 // ─────────────────────────────────────────────
-//  ★ SSE — REAL-TIME EVENT SOURCE
-//  Replaces polling. Frontend gets pushed data
-//  instantly from vehicle_detector.py via backend.
+//  SSE — REAL-TIME EVENT SOURCE
 // ─────────────────────────────────────────────
 let _sse = null;
 let _sseReconnectTimer = null;
 
 function startStatusPoll(onUpdate) {
-  // "startStatusPoll" is kept as the function name for
-  // compatibility with all existing pages — but now it
-  // uses SSE instead of setInterval polling.
   startSSE(onUpdate);
 }
 
 function startSSE(onUpdate) {
-  // Close any existing connection
-  if (_sse) {
-    _sse.close();
-    _sse = null;
-  }
-  if (_sseReconnectTimer) {
-    clearTimeout(_sseReconnectTimer);
-  }
+  if (_sse) { _sse.close(); _sse = null; }
+  if (_sseReconnectTimer) clearTimeout(_sseReconnectTimer);
 
-  console.log("[SSE] Connecting to real-time stream...");
-
+  console.log("[SSE] Connecting...");
   _sse = new EventSource(`${API_BASE}/api/events`);
 
   _sse.onopen = () => {
-    console.log("[SSE] ✅ Connected — receiving live detections");
+    console.log("[SSE] ✅ Connected");
     updateSSEIndicator(true);
   };
 
@@ -113,51 +118,38 @@ function startSSE(onUpdate) {
     try {
       const data = JSON.parse(event.data);
 
-      // ── Update header live badge instantly ──
       const badge = document.getElementById("liveBadge");
       if (badge) {
-        const s     = (data.status || "NORMAL").toUpperCase();
-        const label = s.includes("ACCIDENT")   ? "ACCIDENT"   :
-                      s.includes("CONGESTION") ? "CONGESTION" : "NORMAL";
-        badge.innerHTML   = `<div class="live-dot"></div> ${label}`;
-        badge.style.color = getStatusColor(data.status);
-        badge.style.borderColor = getStatusColor(data.status);
+        const label = normalizeStatus(data.status);
+        badge.innerHTML     = `<div class="live-dot"></div> ${label}`;
+        badge.style.color       = getStatusColor(label);
+        badge.style.borderColor = getStatusColor(label);
       }
 
-      // ── Call page-specific callback ──────────
       if (typeof onUpdate === "function") onUpdate(data);
-
     } catch (e) {
       console.error("[SSE] Parse error:", e);
     }
   };
 
   _sse.onerror = () => {
-    console.warn("[SSE] Connection lost — reconnecting in 3s...");
+    console.warn("[SSE] Lost — reconnecting in 3s...");
     updateSSEIndicator(false);
     _sse.close();
     _sse = null;
-
-    // Reconnect after 3s
     _sseReconnectTimer = setTimeout(() => startSSE(onUpdate), 3000);
   };
 }
 
 function updateSSEIndicator(connected) {
-  // Update sidebar cam dot
-  const dots = document.querySelectorAll(".cam-dot");
-  dots.forEach(d => {
-    d.style.background  = connected ? "var(--accent-green)" : "var(--accent-red)";
-    d.style.boxShadow   = connected
-      ? "0 0 6px var(--accent-green)"
-      : "0 0 6px var(--accent-red)";
+  document.querySelectorAll(".cam-dot").forEach(d => {
+    d.style.background = connected ? "var(--accent-green)" : "var(--accent-red)";
+    d.style.boxShadow  = connected ? "0 0 6px var(--accent-green)" : "0 0 6px var(--accent-red)";
   });
-
-  // Update sidebar online label
-  const onlineLbl = document.getElementById("sseOnlineLabel");
-  if (onlineLbl) {
-    onlineLbl.textContent = connected ? "● ONLINE" : "● OFFLINE";
-    onlineLbl.style.color = connected ? "var(--accent-green)" : "var(--accent-red)";
+  const lbl = document.getElementById("sseOnlineLabel");
+  if (lbl) {
+    lbl.textContent  = connected ? "● ONLINE" : "● OFFLINE";
+    lbl.style.color  = connected ? "var(--accent-green)" : "var(--accent-red)";
   }
 }
 
@@ -167,7 +159,6 @@ function updateSSEIndicator(connected) {
 function injectHeader(pageTitle, breadcrumb) {
   const el = document.getElementById("header");
   if (!el) return;
-
   el.innerHTML = `
     <div class="header-left">
       <div class="header-page-title">${pageTitle}</div>
@@ -184,8 +175,7 @@ function injectHeader(pageTitle, breadcrumb) {
         <span style="color:var(--text-dim); font-size:11px;">▾</span>
       </div>
       <div class="user-dropdown" id="userDropdown">
-        <div class="dropdown-item"
-          onclick="window.location.href='settings.html'">⚙ Settings</div>
+        <div class="dropdown-item" onclick="window.location.href='settings.html'">⚙ Settings</div>
         <div class="dropdown-divider"></div>
         <div class="dropdown-item danger" onclick="logout()">⏻ Sign Out</div>
       </div>
@@ -201,7 +191,10 @@ function injectHeader(pageTitle, breadcrumb) {
     if (el) el.textContent = new Date().toTimeString().slice(0, 8);
   }
   tick();
-  setInterval(tick, 1000);
+  if (!window._clockStarted) {
+    window._clockStarted = true;
+    setInterval(tick, 1000);
+  }
 }
 
 function toggleUserMenu() {
@@ -212,9 +205,7 @@ function toggleUserMenu() {
 document.addEventListener("click", (e) => {
   const menu = document.getElementById("userDropdown");
   const btn  = document.querySelector(".user-menu");
-  if (menu && btn && !btn.contains(e.target)) {
-    menu.classList.remove("open");
-  }
+  if (menu && btn && !btn.contains(e.target)) menu.classList.remove("open");
 });
 
 // ─────────────────────────────────────────────
@@ -225,52 +216,37 @@ function injectSidebar(activePage) {
   if (!el) return;
 
   const groups = [
-    {
-      label: "MAIN",
-      items: [
-        { id:"index",     href:"index.html",     icon:svgDashboard(), label:"Dashboard",   sub:"Overview & stats"   },
-        { id:"live",      href:"live.html",       icon:svgLive(),      label:"Live Monitor",sub:"ESP32-CAM feed"      },
-      ]
-    },
-    {
-      label: "DATA",
-      items: [
-        { id:"incidents", href:"incidents.html",  icon:svgList(),      label:"Incidents",   sub:"Detection log"      },
-        { id:"analytics", href:"analytics.html",  icon:svgChart(),     label:"Analytics",   sub:"Charts & trends"    },
-        { id:"report",    href:"report.html",     icon:svgReport(),    label:"Reports",     sub:"Export & download"  },
-      ]
-    },
-    {
-      label: "CONFIG",
-      items: [
-        { id:"settings",  href:"settings.html",   icon:svgSettings(),  label:"Settings",    sub:"Config & account"   },
-      ]
-    },
+    { label: "MAIN", items: [
+      { id:"index",     href:"index.html",     icon:svgDashboard(), label:"Dashboard",    sub:"Overview & stats"  },
+      { id:"live",      href:"live.html",       icon:svgLive(),      label:"Live Monitor", sub:"ESP32-CAM feed"    },
+    ]},
+    { label: "DATA", items: [
+      { id:"incidents", href:"incidents.html",  icon:svgList(),      label:"Incidents",    sub:"Detection log"     },
+      { id:"analytics", href:"analytics.html",  icon:svgChart(),     label:"Analytics",    sub:"Charts & trends"   },
+      { id:"report",    href:"report.html",     icon:svgReport(),    label:"Reports",      sub:"Export & download" },
+    ]},
+    { label: "CONFIG", items: [
+      { id:"settings",  href:"settings.html",   icon:svgSettings(),  label:"Settings",     sub:"Config & account"  },
+    ]},
   ];
 
   const navHTML = groups.map(g => `
-    <div style="padding:14px 14px 4px;
-      font-family:'Share Tech Mono',monospace;
-      font-size:9px; color:var(--text-dim); letter-spacing:3px;">
-      // ${g.label}
-    </div>
+    <div style="padding:14px 14px 4px; font-family:'Share Tech Mono',monospace;
+      font-size:9px; color:var(--text-dim); letter-spacing:3px;">// ${g.label}</div>
     ${g.items.map(item => {
       const active = activePage === item.id;
-      return `
-        <a href="${item.href}" class="nav-item ${active ? "active" : ""}">
-          <span class="nav-icon-svg">${item.icon}</span>
-          <span class="nav-text">
-            <span class="nav-label">${item.label}</span>
-            <span class="nav-sub">${item.sub}</span>
-          </span>
-          ${active ? `<span class="nav-active-bar"></span>` : ""}
-        </a>
-      `;
+      return `<a href="${item.href}" class="nav-item ${active ? "active" : ""}">
+        <span class="nav-icon-svg">${item.icon}</span>
+        <span class="nav-text">
+          <span class="nav-label">${item.label}</span>
+          <span class="nav-sub">${item.sub}</span>
+        </span>
+        ${active ? `<span class="nav-active-bar"></span>` : ""}
+      </a>`;
     }).join("")}
   `).join("");
 
   el.innerHTML = `
-    <!-- Brand -->
     <div class="sidebar-brand">
       <div class="brand-logo">
         <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
@@ -284,20 +260,10 @@ function injectSidebar(activePage) {
         <div class="brand-sub">DETECTION v3.0</div>
       </div>
     </div>
-
-    <!-- Nav -->
-    <nav style="padding:4px 10px; flex:1; overflow-y:auto;">
-      ${navHTML}
-    </nav>
-
-    <!-- Footer status -->
+    <nav style="padding:4px 10px; flex:1; overflow-y:auto;">${navHTML}</nav>
     <div class="sidebar-footer">
       <div style="font-family:'Share Tech Mono',monospace; font-size:9px;
-        color:var(--text-dim); letter-spacing:2px; margin-bottom:8px;">
-        // SYSTEM
-      </div>
-
-      <!-- Camera -->
+        color:var(--text-dim); letter-spacing:2px; margin-bottom:8px;">// SYSTEM</div>
       <div class="cam-status">
         <div class="cam-dot"></div>
         <div style="flex:1; min-width:0;">
@@ -305,41 +271,28 @@ function injectSidebar(activePage) {
           <div class="cam-url">192.168.8.122/capture</div>
         </div>
       </div>
-
-      <!-- SSE status -->
-      <div style="margin-top:8px; padding:8px 10px;
-        background:rgba(0,0,0,0.2); border:1px solid var(--border);
-        border-radius:6px; display:flex; align-items:center; gap:8px;">
+      <div style="margin-top:8px; padding:8px 10px; background:rgba(0,0,0,0.2);
+        border:1px solid var(--border); border-radius:6px;
+        display:flex; align-items:center; gap:8px;">
         <div style="flex:1;">
           <div style="font-family:'Share Tech Mono',monospace; font-size:9px;
-            color:var(--text-dim); letter-spacing:1px; margin-bottom:2px;">
-            LIVE STREAM
-          </div>
+            color:var(--text-dim); letter-spacing:1px; margin-bottom:2px;">LIVE STREAM</div>
           <div style="font-family:'Share Tech Mono',monospace; font-size:9px;
             color:var(--text-dim);">SSE · instant push</div>
         </div>
-        <span id="sseOnlineLabel"
-          style="font-family:'Share Tech Mono',monospace; font-size:9px;
-          color:var(--accent-orange); letter-spacing:1px;">
-          ● CONNECTING
-        </span>
+        <span id="sseOnlineLabel" style="font-family:'Share Tech Mono',monospace;
+          font-size:9px; color:var(--accent-orange); letter-spacing:1px;">● CONNECTING</span>
       </div>
-
       <div style="margin-top:8px; font-family:'Share Tech Mono',monospace;
-        font-size:9px; color:var(--text-dim);">
-        YOLO11 v3.0 · SQLite
-      </div>
+        font-size:9px; color:var(--text-dim);">YOLO11 v3.0 · SQLite</div>
     </div>
   `;
 }
 
-// ── SVG ICONS ─────────────────────────────
 function svgDashboard() {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <rect x="3" y="3" width="7" height="7" rx="1"/>
-    <rect x="14" y="3" width="7" height="7" rx="1"/>
-    <rect x="3" y="14" width="7" height="7" rx="1"/>
-    <rect x="14" y="14" width="7" height="7" rx="1"/>
+    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+    <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
   </svg>`;
 }
 function svgLive() {
@@ -350,28 +303,22 @@ function svgLive() {
 }
 function svgList() {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <line x1="8" y1="6" x2="21" y2="6"/>
-    <line x1="8" y1="12" x2="21" y2="12"/>
-    <line x1="8" y1="18" x2="21" y2="18"/>
-    <line x1="3" y1="6" x2="3.01" y2="6"/>
-    <line x1="3" y1="12" x2="3.01" y2="12"/>
-    <line x1="3" y1="18" x2="3.01" y2="18"/>
+    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+    <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
+    <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
   </svg>`;
 }
 function svgChart() {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <line x1="18" y1="20" x2="18" y2="10"/>
-    <line x1="12" y1="20" x2="12" y2="4"/>
-    <line x1="6"  y1="20" x2="6"  y2="14"/>
-    <line x1="2"  y1="20" x2="22" y2="20"/>
+    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+    <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
   </svg>`;
 }
 function svgReport() {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
     <polyline points="14 2 14 8 20 8"/>
-    <line x1="16" y1="13" x2="8" y2="13"/>
-    <line x1="16" y1="17" x2="8" y2="17"/>
+    <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
   </svg>`;
 }
 function svgSettings() {
@@ -418,8 +365,8 @@ function showToast(message, type = "info", duration = 3000) {
     container.className = "toast-container";
     document.body.appendChild(container);
   }
-  const toast       = document.createElement("div");
-  toast.className   = `toast ${type}`;
+  const toast     = document.createElement("div");
+  toast.className = `toast ${type}`;
   toast.textContent = message;
   container.appendChild(toast);
   setTimeout(() => {
@@ -430,7 +377,7 @@ function showToast(message, type = "info", duration = 3000) {
 }
 
 // ─────────────────────────────────────────────
-//  DATE / TIME HELPERS
+//  DATE HELPERS
 // ─────────────────────────────────────────────
 function formatDateTime(ts) {
   if (!ts) return "—";

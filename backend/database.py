@@ -175,6 +175,22 @@ def get_today_detections():
     conn.close()
     return rows
 
+
+def clear_today_detections():
+    """Delete all detection records from today."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        DELETE FROM detections
+        WHERE DATE(timestamp) = DATE('now')
+    """)
+    deleted = cursor.rowcount
+    conn.commit()
+    conn.close()
+    update_daily_stats()
+    return deleted
+
+
 def get_hourly_stats():
     """Get detection counts grouped by hour for today."""
     conn = get_connection()
